@@ -112,9 +112,6 @@ def process_cols(code_line):
 
     address = ""
 
-    if not hasattr(process_cols, "prev_address_dec"):
-        process_cols.prev_address_dec = -1
-
     # column 0 address
     if col_address_count == 1:
         address = col_address.contents[0]
