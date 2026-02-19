@@ -56,7 +56,6 @@ def get_normalized_comment(comment, col_inner_count):
         lines[i-1] = lines[i-1] + comment[prev_real_cut_point:]
     return lines
 
-
 def is_hex(s):
     if not s:  # int() will not work on empty strings
         return False
@@ -66,8 +65,20 @@ def is_hex(s):
     except ValueError:
         return False, None
     
-def is_address_consistent(address_dec, prev_address_dec):   
-    return 0 <= address_dec <= 65535 and address_dec > prev_address_dec
+def is_address_valid(address):
+    # checks if: ...
+    # ... address is a valid hexadecimal number folowed by H and ...
+    # ... addresses always crescent
+    if not hasattr(is_address_valid, "prev_address_dec"):
+        is_address_valid.prev_address = "-1H"
+
+    f_hex_adddress, address_dec = is_hex(address[:-1])
+    f_hex_prev_adddress, prev_address_dec = is_hex(is_address_valid.prev_address[:-1])
+
+    is_address_valid.address_dec = address_dec
+    is_address_valid.prev_address_dec = prev_address_dec
+    is_address_valid.prev_address = address
+    return f_hex_adddress and f_hex_prev_adddress and (0 <= address_dec <= 65535 and address_dec > prev_address_dec)
 
 def process_cols(code_line):
     # easier to have code_line for debugging
@@ -94,97 +105,93 @@ def process_cols(code_line):
         # there is a case where there are no comments
         # TODO see if it needs a refactoring to put it in other scope
         col_comment = cols[COL_INDEX_COMMENT]
-        col_comment_inner_count = len (col_comment.contents)
+        col_comment_count = len(col_comment.contents)
 
-    col_address_inner_count = len(col_address.contents)
-    col_instruction_inner_count = len(col_instruction.contents)
-  
+    col_address_count = len(col_address.contents)
+    col_instruction_count = len(col_instruction.contents)
 
     address = ""
-    address_dec = -1
-    prev_address_dec = -1
 
-    # column 0 is address
-    if col_address_inner_count == 1:
-        prev_address_dec = address_dec
+    if not hasattr(process_cols, "prev_address_dec"):
+        process_cols.prev_address_dec = -1
+
+    # column 0 address
+    if col_address_count == 1:
         address = col_address.contents[0]
-        f_hex, address_dec = is_hex(address[:-1])
-        if f_hex and is_address_consistent(address_dec, prev_address_dec):
-            print(format_address(address), end="")
-        else:
-            error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{prev_address_dec:X}'.")
-    elif col_address_inner_count % 2 != 0 and col_instruction_inner_count % 2 != 0 and col_address_inner_count == col_instruction_inner_count:
+        if not is_address_valid(address):
+            error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{is_address_valid.prev_address}'.")
+
+        print(format_address(address), end="")
+    elif col_address_count in [3, 5] and col_address_count == col_instruction_count:
         # an alternate format: ..
         # ... several addresses in one tag on column 1
         # ... several instructions in one tag on column 2
         # ... so the comment is applied to those group of addresses and instructions
         comment = col_comment.contents[0]
-        comments = get_normalized_comment(comment, col_address_inner_count)
+        comments = get_normalized_comment(comment, col_address_count)
         lines = []
-        k = 0
-        for j in range(0, col_address_inner_count, 2):
-            address = col_address.contents[j].get_text(strip=True)
-            instruction = col_instruction.contents[j].get_text(strip=True)
-            if operator.xor(address == "", instruction == ""):
-                # address and instruction lists are inconsistent
-                error_and_exit(f"Inconsistent address: '{col_address.contents[j]}' and instruction: '{col_instruction.contents[j]}'.")
-            
+        index_line = 0
+        for index in range(0, col_address_count, 2):
+            address = col_address.contents[index].get_text(strip=True)
+            instruction = col_instruction.contents[index].get_text(strip=True)
+
             if address == "" and instruction == "":
                 # it is a </br> skipt it
                 continue
+ 
+            if operator.xor(address == "", instruction == ""):
+                # address and instruction lists are inconsistent
+                error_and_exit(f"Inconsistent address: '{col_address.contents[index]}' and instruction: '{col_instruction.contents[index_line]:}'.")
 
-            f_hex, address_dec = is_hex(address[:-1])
-            if f_hex and is_address_consistent(address_dec, prev_address_dec):
-                lines.append(format_address(address) + format_instruction(instruction) + comments[k])
-                k += 1
-            else:
-                error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{prev_address_dec:X}'.")
+            if not is_address_valid(address):
+                error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{is_address_valid.prev_address}'.")
+
+            lines.append(format_address(address) + format_instruction(instruction) + comments[index_line])
+            index_line += 1
         
         for line in lines:
             print(line)
-    elif col_address_inner_count == 3:
+    elif col_address_count == 3 and col_instruction_count == 1:
         # a weird single case where at 0BFA the DEC HL instruction is given ...
-        # ... and an empty address follows with no instruction ...
+        # ... and the next address follows with no instruction ...
         # ... comparing with with ROM image the instruction repeats twice, what matches the comment about decremented twice
         addresses = col_address.contents
         address1 = addresses[0].get_text(strip=True)
         address2 = addresses[1].get_text(strip=True)
         address3 = addresses[2].get_text(strip=True)
-        _, address_dec1 = is_hex(address1[:-1])
-        _, address_dec3 = is_hex(address3[:-1])
-        if not(address_dec1 + 1 == address_dec3 and address2 == ""):
-            error_and_exit(f"Unexpected format: sequential addresses in two lines not found: '{col_address.decode_contents()}'.")
+        f_address1_valid = is_address_valid(address1)
+        f_address3_valid = is_address_valid(address3)
+
+        if not(f_address1_valid and f_address3_valid):
+            error_and_exit(f"Invalid address: '{col_address.decode_contents()}'.")
+
+        if not(is_address_valid.address_dec - is_address_valid.prev_address_dec == 1 and address2 == ""):
+            error_and_exit(f"Unexpected format: '{col_address.decode_contents()}'.")
 
         lines = []
         instruction = col_instruction.contents[0].get_text(strip=True)
         comment = get_normalized_comment(col_comment.contents[0], 1)
         lines.append(format_address(address1) + format_instruction(instruction) + comment)
-        lines.append(format_address(address1) + format_instruction(instruction))
+        lines.append(format_address(address3) + format_instruction(instruction))
 
         for line in lines:
             print(line)
-
     else:
         error_and_exit(f"Unexpected format: '{col_address.decode_contents()}'")
 
-
-
-
-
-
-    # column 1 is instruction  
-    if col_instruction_inner_count == 1:
+    # column 1 instruction  
+    if col_instruction_count == 1:
         if cols_count == 3:
             # normal case: address instruction; comment
             instruction = col_instruction.contents[0].get_text(strip=True)
             comments = col_comment.contents
-            if col_comment_inner_count == 0:
+            if col_comment_count == 0:
                 # there is no comment
                 comment = ""
-            elif col_comment_inner_count == 1:
+            elif col_comment_count == 1:
                 # normal case one comment
                 comment = comments[0]
-            elif col_comment_inner_count > 1: 
+            elif col_comment_count > 1: 
                 # the comment has more than a line  already formatted: ...
                 # ... first line after the instruction ...
                 # ... other lines continuing the comment without instruction before
@@ -204,7 +211,7 @@ def process_cols(code_line):
             # ... skip to the next
             instruction = col_instruction.contents[0].get_text(strip=True)
             print(format_instruction(instruction))
-    elif col_instruction_inner_count > 1:
+    elif col_instruction_count > 1:
         # TODO the instruction: print it
         # two cases : ...
         # ... two quotation marks enclosing a single character
