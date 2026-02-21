@@ -20,6 +20,262 @@ COL_INDEX_COMMENT= 2
 # ... it is notintended to be a generic use one ...
 # ... the ifs maze reflect a lot of inconsistencies, exceptions, and errors on the HTML page it parses
 
+def process(file):
+    try:
+        with open(file, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except FileNotFoundError:
+        error_and_exit(f"Error: The file '{file}' was not found.")
+    except IOError as e:
+        error_and_exit(f"Error reading file '{file}': {e}")
+
+    soup = BeautifulSoup(content, 'html.parser')
+    code_lines = soup.find_all('div', class_='assembly-row-combined')
+
+    if code_lines:
+        process_cols.count_branches = [0] * 7
+        for code_line in code_lines:
+            if code_line.name == "div":
+                process_cols(code_line)
+            else:
+                error_and_exit(f"Unexpected content found: '{code_line.decode_contents()}'")
+    else:
+        error_and_exit("'assembly-row-combined' class not found.")
+
+    pass
+
+def process_cols(code_line):
+    branches = []
+    # easier to have code_line for debugging
+
+    # it is needed to know the number of elements prior so I avoid lazy evaluation ...
+    # ... at this point there will be about 3 elements tops so it is not a problem
+    cols = list(code_line.children)
+    cols_count = len(cols)
+
+    if case1general.condition(cols_count):
+        cols, cols_count = case1general(cols)
+
+    col_address = cols[COL_INDEX_ADDRESS]
+    col_address_count = len(col_address.contents)
+
+    col_instruction = cols[COL_INDEX_INSTRUCTION]
+    col_instruction_count = len(col_instruction.contents)
+
+    if cols_count == 3: 
+        # there is a case where there are no comments: so cols does not have 3 elements
+        col_comment = cols[COL_INDEX_COMMENT]
+        col_comment_count = len(col_comment.contents)
+
+    # column 0 address
+    if case1col1.condition(col_address_count):
+        branches.append(101)
+        case1col1(col_address)
+    elif case2col1.condition(col_address_count, col_instruction_count):
+        branches.append(102)
+        case2col1(col_address, col_instruction, col_comment)
+    elif case3col1.condition(col_address_count, col_instruction_count):
+        branches.append(103)
+        case3col1(col_address, col_instruction, col_comment)
+    else:
+        error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
+
+    # column 1 instruction  
+    if col_instruction_count == 1:
+        if cols_count == 3:
+            # normal case: address instruction; comment
+            instruction = col_instruction.contents[0].get_text(strip=True)
+            comments = col_comment.contents
+            if col_comment_count == 0:
+                branches.append(201)
+                # there is no comment
+                comment = ""
+            elif col_comment_count == 1:
+                branches.append(202)
+                # normal case one comment
+                comment = comments[0]
+            elif col_comment_count > 1:
+                branches.append(203)
+                # the comment has more than a line  already formatted: ...
+                # ... first line after the instruction ...
+                # ... other lines continuing the comment without instruction before
+                # TODO implement
+                # TODO print print first line complete and just comments on single lines aline
+                # TODO put after next print outside the if so treaats the comments only
+
+                comment = "" # placefolder for now
+                            
+            # TODO here the second parameter of get_normalized_comment 
+            # TODO ... received get_normalized_comment but I think it was wrong ...
+            # TODO ...it treated the cases with 0 and 1 comment only not several
+            print(format_instruction(instruction) + get_normalized_comment(comment, 1))
+        elif cols_count == 2:
+            branches.append(204)
+            # usually just addresses followed by data definitions with no comments: ...
+            # ... print with CR ...
+            # ... skip to the next
+            instruction = col_instruction.contents[0].get_text(strip=True)
+            print(format_instruction(instruction))
+    elif col_instruction_count > 1:
+        branches.append(205)
+        # TODO the instruction: print it
+        # two cases : ...
+        # ... two quotation marks enclosing a single character
+        # TODO implement
+        pass
+        # ... an RST followed by two bytes that are parameters skipped by the called routine manipulating PC
+        # TODO implement
+        pass
+
+    pass
+
+    # numbers in the 100-199 are cases for address column
+    # numbers in the range 200-299 are for instruction and comment columns
+    all_branches = [[101, 201], [101, 202], [101, 203], [101, 204], [101, 205], [102, 205], [103, 202]]
+    process_cols.count_branches[all_branches.index(branches)] += 1
+    if branches not in all_branches:
+        # number of times passes at each branch: [47, 1724, 274, 3, 50, 18, 1]
+        # TODO use the ifs to select the branches list only and separate each processing case in one function ...
+        # TODO ... pass address and 
+        pass
+
+# attributes in funtions are only initialized the first time tunction is called...
+# ... using a decorator that is run at definition I can use them,
+def with_condition(condition):
+    def decorator(func):
+        func.condition = condition
+        return func
+    return decorator
+
+@with_condition(lambda cols_count: cols_count == 4)
+def case1general(cols):
+    # example:
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>067FH</div>
+    #       <div>CP 22H</div>
+    #       <div>CP 22H</div>
+    #       <div>Compare the value held in Register A against 22H (ASCII: <span class="code">"</span>). Results: If Register A equals ", the Z FLAG is set; otherwise, the NZ FLAG is set.</div>
+    #   </div>
+    
+    # this is an error on the page formatting: 
+    # ... you can ignore the second DIV if it repeats the instruction ...
+    # ... the repeat was inadvertly put as comment garbling format ...
+    # ... remove it
+
+    if cols[1].get_text() != cols[2].get_text():
+        error_and_exit(f"Unexpected format: repeatded instruction does not match: '{cols[1].get_text()}', '{cols[2].get_text()}'.")
+
+    cols.pop(2)
+
+    return cols, len(cols)
+
+@with_condition(lambda col_address_count: col_address_count == 1)
+def case1col1(col_address):
+    # example:
+    # 
+    #   <div class="assembly-row-combined">
+    #       <div>0000H</div>
+    #       <div>DI</div>
+    #       <div>Disable Interrupts.</div>
+    #   </div>
+    
+    # normal case: one address
+    
+    address = col_address.contents[0]
+    if not is_address_valid(address):
+            # if address is 015EH this an error on the page content, a routine was repeated
+            # TODO if address is 015EH set flag to skip next repeat with a return until it reaches 015EH when the flag is reset ...
+            # TODO ... there are several errors on the page at 
+            # TODO ... 0155H, 0249H, 0287H, 0842H, 08B6H
+        return
+        error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{is_address_valid.prev_address_dec:X}H'.")
+
+    print(format_address(address), end="")
+
+@with_condition(lambda col_address_count, col_instruction_count: col_address_count in [3, 5] and col_address_count == col_instruction_count)
+def case2col1(col_address, col_instruction, col_comment):
+    # example
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>0084H<br/>0085H</div>
+    #       <div>RLA<br/>RLA</div>
+    #       <div>Rotate the bits of Register left (i.e., lower bit moves higher) two bit positions so that A will correspond to 00H (Variable A) to 64H (Variable Z)</div>
+    #   </div>
+    
+    # an alternate format: ..
+    # ... several addresses in one tag on column 1 separated by </br>
+    # ... several instructions in one tag on column 2 separated by </br>
+    # ... so the comment is applied to those group of addresses and instructions
+
+    col_address_count = len(col_address.contents)
+    comment = col_comment.contents[0]
+    comments = get_normalized_comment(comment, col_address_count)
+    lines = []
+    index_line = 0
+    for index in range(0, col_address_count, 2):
+        address = col_address.contents[index].get_text(strip=True)
+        instruction = col_instruction.contents[index].get_text(strip=True)
+
+        if address == "" and instruction == "":
+            # it is a </br> skipt it
+            continue
+ 
+        if operator.xor(address == "", instruction == ""):
+            # address and instruction lists are inconsistent
+            error_and_exit(f"Inconsistent addresses: '{col_address.contents[index]}' and instruction: '{col_instruction.contents[index_line]:}'.")
+
+        if not is_address_valid(address):
+            # TODO ... there are several errors on the page at 
+            # TODO ... 04ECH, 0501H, 066AAH, 08D4H, 0A89H, 0AB1H, 0E4AH
+            return
+            error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{is_address_valid.prev_address_dec:X}H'.")
+
+        lines.append(format_address(address) + format_instruction(instruction) + comments[index_line])
+        index_line += 1
+        
+    for line in lines:
+        print(line)
+
+@with_condition(lambda col_address_count, col_instruction_count: col_address_count == 3 and col_instruction_count == 1)
+def case3col1(col_address, col_instruction, col_comment):
+    # example
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>0BFAH<br/>0BFBH</div>
+    #       <div>DEC HL</div>
+    #       <div>Back up HL (i.e., the pointer to the variable in RAM) two bytes.</div>
+    #   </div>
+
+    # a weird single case where at 0BFA the DEC HL instruction is given ...
+    # ... and the next address follows with no instruction ...
+    # ... comparing with with ROM image the instruction repeats twice, what matches the comment about decremented twice
+    addresses = col_address.contents
+    address1 = addresses[0].get_text(strip=True)
+    address2 = addresses[1].get_text(strip=True)
+    address3 = addresses[2].get_text(strip=True)
+
+    f_address1_valid = is_address_valid(address1)
+    if not f_address1_valid:
+        error_and_exit(f"Inconsistent addresses: current: '{address1}', previous: '{is_address_valid.prev_address_dec:X}H'.")
+
+    f_address3_valid = is_address_valid(address3)
+    if not f_address3_valid:
+        error_and_exit(f"Inconsistent addresses: current: '{address3}', previous: '{is_address_valid.prev_address_dec:X}H'.")
+
+    if not(is_address_valid.address_dec - is_address_valid.prev_address_dec == 1 and address2 == ""):
+        error_and_exit(f"Unexpected format: '{col_address.decode_contents()}'.")
+
+    lines = []
+    instruction = col_instruction.contents[0].get_text(strip=True)
+    comment = get_normalized_comment(col_comment.contents[0], 1)
+    lines.append(format_address(address1) + format_instruction(instruction) + comment)
+    lines.append(format_address(address3) + format_instruction(instruction))
+
+    for line in lines:
+        print(line)
+
+
 def error_and_exit(message):
         print(message, file=sys.stderr)
         sys.exit(1)
@@ -80,165 +336,6 @@ def is_address_valid(address):
     is_address_valid.prev_address = address
     return f_hex_adddress and f_hex_prev_adddress and (0 <= address_dec <= 65535 and address_dec > prev_address_dec)
 
-def process_cols(code_line):
-    # easier to have code_line for debugging
-
-    # it is needed to know the number of elements prior so I avoid lazy evaluation ...
-    # ... at this point there will be about 3 elements tops so it is not a problem
-    cols = list(code_line.children)
-    cols_count = len(cols)
-
-    if cols_count == 4:
-        # this is an error on the page formatting: 
-        # ... you can ignore the second DIV if it repeats the instruction ...
-        # ... the repeat was inadvertly put as comment garbling format ...
-        # ... remove it
-        if cols[1].get_text() != cols[2].get_text():
-            error_and_exit(f"Unexpected format: repeatded instruction does not match: '{cols[1].get_text()}', '{cols[2].get_text()}'.")
-
-        cols.pop(2)
-        cols_count = len(cols)
-
-    col_address = cols[COL_INDEX_ADDRESS]
-    col_instruction = cols[COL_INDEX_INSTRUCTION]
-    if cols_count == 3:
-        # there is a case where there are no comments
-        # TODO see if it needs a refactoring to put it in other scope
-        col_comment = cols[COL_INDEX_COMMENT]
-        col_comment_count = len(col_comment.contents)
-
-    col_address_count = len(col_address.contents)
-    col_instruction_count = len(col_instruction.contents)
-
-    address = ""
-
-    # column 0 address
-    if col_address_count == 1:
-        address = col_address.contents[0]
-        if not is_address_valid(address):
-            error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{is_address_valid.prev_address}'.")
-
-        print(format_address(address), end="")
-    elif col_address_count in [3, 5] and col_address_count == col_instruction_count:
-        # an alternate format: ..
-        # ... several addresses in one tag on column 1
-        # ... several instructions in one tag on column 2
-        # ... so the comment is applied to those group of addresses and instructions
-        comment = col_comment.contents[0]
-        comments = get_normalized_comment(comment, col_address_count)
-        lines = []
-        index_line = 0
-        for index in range(0, col_address_count, 2):
-            address = col_address.contents[index].get_text(strip=True)
-            instruction = col_instruction.contents[index].get_text(strip=True)
-
-            if address == "" and instruction == "":
-                # it is a </br> skipt it
-                continue
- 
-            if operator.xor(address == "", instruction == ""):
-                # address and instruction lists are inconsistent
-                error_and_exit(f"Inconsistent address: '{col_address.contents[index]}' and instruction: '{col_instruction.contents[index_line]:}'.")
-
-            if not is_address_valid(address):
-                error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{is_address_valid.prev_address}'.")
-
-            lines.append(format_address(address) + format_instruction(instruction) + comments[index_line])
-            index_line += 1
-        
-        for line in lines:
-            print(line)
-    elif col_address_count == 3 and col_instruction_count == 1:
-        # a weird single case where at 0BFA the DEC HL instruction is given ...
-        # ... and the next address follows with no instruction ...
-        # ... comparing with with ROM image the instruction repeats twice, what matches the comment about decremented twice
-        addresses = col_address.contents
-        address1 = addresses[0].get_text(strip=True)
-        address2 = addresses[1].get_text(strip=True)
-        address3 = addresses[2].get_text(strip=True)
-        f_address1_valid = is_address_valid(address1)
-        f_address3_valid = is_address_valid(address3)
-
-        if not(f_address1_valid and f_address3_valid):
-            error_and_exit(f"Invalid address: '{col_address.decode_contents()}'.")
-
-        if not(is_address_valid.address_dec - is_address_valid.prev_address_dec == 1 and address2 == ""):
-            error_and_exit(f"Unexpected format: '{col_address.decode_contents()}'.")
-
-        lines = []
-        instruction = col_instruction.contents[0].get_text(strip=True)
-        comment = get_normalized_comment(col_comment.contents[0], 1)
-        lines.append(format_address(address1) + format_instruction(instruction) + comment)
-        lines.append(format_address(address3) + format_instruction(instruction))
-
-        for line in lines:
-            print(line)
-    else:
-        error_and_exit(f"Unexpected format: '{col_address.decode_contents()}'")
-
-    # column 1 instruction  
-    if col_instruction_count == 1:
-        if cols_count == 3:
-            # normal case: address instruction; comment
-            instruction = col_instruction.contents[0].get_text(strip=True)
-            comments = col_comment.contents
-            if col_comment_count == 0:
-                # there is no comment
-                comment = ""
-            elif col_comment_count == 1:
-                # normal case one comment
-                comment = comments[0]
-            elif col_comment_count > 1: 
-                # the comment has more than a line  already formatted: ...
-                # ... first line after the instruction ...
-                # ... other lines continuing the comment without instruction before
-                # TODO implement
-                # TODO print print first line complete and just comments on single lines aline
-                # TODO put after next print outside the if so treaats the comments only
-
-                comment = "" # placefolder for now
-                            
-            # TODO here the second parameter of get_normalized_comment 
-            # TODO ... received get_normalized_comment but I think it was wrong ...
-            # TODO ...it treated the cases with 0 and 1 comment only not several
-            print(format_instruction(instruction) + get_normalized_comment(comment, 1))
-        elif cols_count == 2:
-            # usually just addresses followed by data definitions with no comments: ...
-            # ... print with CR ...
-            # ... skip to the next
-            instruction = col_instruction.contents[0].get_text(strip=True)
-            print(format_instruction(instruction))
-    elif col_instruction_count > 1:
-        # TODO the instruction: print it
-        # two cases : ...
-        # ... two quotation marks enclosing a single character
-        # TODO implement
-        pass
-        # ... an RST followed by two bytes that are parameters skipped by the called routine manipulating PC
-        # TODO implement
-        pass
-
-
-def process(file):
-    try:
-        with open(file, 'r', encoding='utf-8') as f:
-            content = f.read()
-    except FileNotFoundError:
-        error_and_exit(f"Error: The file '{file}' was not found.")
-    except IOError as e:
-        error_and_exit(f"Error reading file '{file}': {e}")
-
-    soup = BeautifulSoup(content, 'html.parser')
-    code_lines = soup.find_all('div', class_='assembly-row-combined')
-
-    if code_lines:
-        for code_line in code_lines:
-            if code_line.name == "div":
-                process_cols(code_line)
-            else:
-                error_and_exit(f"Unexpected content found: '{code_line.decode_contents()}'")
-    else:
-        error_and_exit("'assembly-row-combined' class not found.")
 
 def main():
     path = "."
