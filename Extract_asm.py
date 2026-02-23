@@ -77,15 +77,19 @@ def process_cols(code_line):
         error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
 
     # column 1 instruction
-    if case1col2.condition(col_instruction_count):
+    if case1col2.condition(col_instruction_count, col_instruction):
         case1col2(col_instruction)
     elif case2col2.condition(col_instruction_count, col_instruction):
-        end = case2col2(col_address, col_instruction, col_comment)
-        if end: return
-    elif case3col2.condition(col_instruction_count, col_instruction):
+        case2col2(col_instruction)
+    elif case3col2.condition(col_instruction_count):
         case3col2(col_instruction)
     elif case4col2.condition(col_instruction_count, col_instruction):
-        case4col2(col_instruction)    
+        end = case4col2(col_address, col_instruction, col_comment)
+        if end: return
+    elif case5col2.condition(col_instruction_count, col_instruction):
+        case5col2(col_instruction)
+    elif case6col2.condition(col_instruction_count, col_instruction):
+        case6col2(col_instruction)  
     elif col_instruction_count > 1:
         # TODO it is here for remaining cases not treated we can remove after all cases are made
         pass
@@ -231,7 +235,7 @@ def case1col1(col_address):
 @call_count
 @with_condition(lambda col_address_count, col_instruction_count: col_address_count in [3, 5] and col_address_count == col_instruction_count)
 def case2col1(col_address, col_instruction, col_comment):
-    # example
+    # example:
     #
     #   <div class="assembly-row-combined">
     #       <div>0084H<br/>0085H</div>
@@ -297,7 +301,7 @@ def case2col1(col_address, col_instruction, col_comment):
 @call_count
 @with_condition(lambda col_address_count, col_instruction_count: col_address_count == 3 and col_instruction_count == 1)
 def case3col1(col_address, col_instruction, col_comment):
-    # example
+    # example:
     #
     #   <div class="assembly-row-combined">
     #       <div>0BFAH<br/>0BFBH</div>
@@ -334,8 +338,34 @@ def case3col1(col_address, col_instruction, col_comment):
         print(line)
 
 @call_count
-@with_condition(lambda col_instruction_count: col_instruction_count == 1)
+@with_condition(lambda col_instruction_count, col_instruction: col_instruction_count == 1 and is_quoted_string(col_instruction.contents[0].get_text()))
 def case1col2(col_instruction):
+    # example:
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>01C0H</div>
+    #       <div>"BREAK AT"</div>
+    #       <div></div>
+    #   </div>
+
+    # literal without DEFM
+    instruction = col_instruction.get_text(strip=True)
+    instruction = f"DEFM {instruction}"
+    print(format_instruction(instruction), end="")
+
+@call_count
+@with_condition(lambda col_instruction_count, col_instruction: col_instruction_count == 1 and is_quoted_string_with_cr(col_instruction.contents[0].get_text()))
+def case2col2(col_instruction):
+    # example:
+    #
+    #
+    instructions = col_instruction.get_text(strip=True).split("+")
+    instruction = f"DEFB {instructions[0].strip()}, {instructions[1].strip()}"
+    print(format_instruction(instruction), end="")
+
+@call_count
+@with_condition(lambda col_instruction_count: col_instruction_count == 1)
+def case3col2(col_instruction):
     # examples:
     #
     #   <div class="assembly-row-combined">
@@ -374,7 +404,7 @@ def case1col2(col_instruction):
 
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and col_instruction.contents[0][0:3] == "RST")
-def case2col2(col_address, col_instruction, col_comment):
+def case4col2(col_address, col_instruction, col_comment):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -393,7 +423,6 @@ def case2col2(col_address, col_instruction, col_comment):
     #   </div>
 
     # an RST followed by two bytes that are parameters skipped by the called routine manipulating PC
-    # TODO implement
     col_instruction_count = len(col_instruction.contents)
     comment = col_comment.contents[0]
     comments = get_normalized_comment(comment, col_instruction_count)
@@ -402,13 +431,13 @@ def case2col2(col_address, col_instruction, col_comment):
     index_line = 0
     for index in range(0, col_instruction_count):
         instruction = col_instruction.contents[index].get_text(strip=True)
-        # TODO add DEFB to parameters (depends on the macro assembler accepting or not bytes  for data without it)
         if instruction == "":
             # it is a </br> skipt it
             continue
 
+        instruction = f"DEFB {instruction}"
         address_dec+=1
-        lines.append(format_address(f"{address_dec:X}H") + format_instruction(instruction) + comments[index_line])
+        lines.append(format_address(f"{address_dec:04X}H") + format_instruction(instruction) + comments[index_line])
         index_line +=1
 
     for line in lines:
@@ -418,7 +447,7 @@ def case2col2(col_address, col_instruction, col_comment):
 
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and col_instruction.contents[0][0] == '"')
-def case3col2(col_instruction):
+def case5col2(col_instruction):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -428,12 +457,13 @@ def case3col2(col_instruction):
     #   </div>
 
     # two quotation marks enclosing a single character like <, >, =
-    # TODO implement
-    pass
+    instruction = col_instruction.get_text(strip=True)
+    instruction = f"DEFM {instruction}"
+    print(format_instruction(instruction), end="")
 
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and is_hex(col_instruction.contents[0][-3:-1]))
-def case4col2(col_instruction):
+def case6col2(col_instruction):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -451,6 +481,8 @@ def case4col2(col_instruction):
     # ... print only the first instruction
     instruction = col_instruction.contents[0].get_text(strip=True)
     print(format_instruction(instruction), end="")
+
+
 
 def error_and_exit(message):
         print(message, file=sys.stderr)
@@ -515,6 +547,12 @@ def is_address_valid(address):
     is_address_valid.prev_address_dec = prev_address_dec
     is_address_valid.prev_address = address
     return f_hex_adddress and f_hex_prev_adddress and (0 <= address_dec <= 65535 and address_dec > prev_address_dec)
+
+def is_quoted_string(s):
+    return s[0] == '"' and s[-1] == '"'
+
+def is_quoted_string_with_cr(s):
+    return s.replace(" ", "")[-5:] == '"+0DH'
 
 def main():
     path = "."
