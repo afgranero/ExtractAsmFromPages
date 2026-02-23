@@ -80,7 +80,8 @@ def process_cols(code_line):
     if case1col2.condition(col_instruction_count, col_instruction):
         case1col2(col_instruction)
     elif case2col2.condition(col_instruction_count, col_instruction):
-        case2col2(col_instruction)
+        end = case2col2(col_instruction)
+        if end: return
     elif case3col2.condition(col_instruction_count):
         case3col2(col_instruction)
     elif case4col2.condition(col_instruction_count, col_instruction):
@@ -254,7 +255,7 @@ def case2col1(col_address, col_instruction, col_comment):
     #            0AA4H
     #       </div>
     #       <div>LD A,H
-    #            <br/>\
+    #            <br/>
     #            CPL
     #            <br/>
     #            LD H,A
@@ -267,6 +268,10 @@ def case2col1(col_address, col_instruction, col_comment):
     # ... several instructions in one tag on column 2 separated by </br>
     # ... so the comment is applied to those group of addresses and instructions
     col_address_count = len(col_address.contents)
+    # comment here has one line only if it has more change to get as case4col2
+    if len(col_comment.contents) > 1:
+         error_and_exit(f"Comment lines expected: '1', found: '{len(col_comment.contents)}'.")
+
     comment = col_comment.contents[0]
     comments = get_normalized_comment(comment, col_address_count)
     lines = []
@@ -358,10 +363,17 @@ def case1col2(col_instruction):
 def case2col2(col_instruction):
     # example:
     #
-    #
+    #   <div class="assembly-row-combined">
+    #       <div>01A9H</div>
+    #       <div>"HOW?" + 0DH</div>
+    #       <div></div>
+    #   </div>
+
+    # string literal followed by CR (like "HOW?" + 0DH) used for error messages: make it like DEFB "HOW?", 0DH
     instructions = col_instruction.get_text(strip=True).split("+")
     instruction = f"DEFB {instructions[0].strip()}, {instructions[1].strip()}"
-    print(format_instruction(instruction), end="")
+    print(format_instruction(instruction))
+    return True
 
 @call_count
 @with_condition(lambda col_instruction_count: col_instruction_count == 1)
@@ -423,9 +435,20 @@ def case4col2(col_address, col_instruction, col_comment):
     #   </div>
 
     # an RST followed by two bytes that are parameters skipped by the called routine manipulating PC
+
     col_instruction_count = len(col_instruction.contents)
-    comment = col_comment.contents[0]
+
+    comment = ""
+    for content in col_comment.contents:
+        cur_content = content.get_text()
+        if cur_content == content:
+            comment += cur_content
+        else:
+            # add spaces around if it is insiode a tag
+            comment += f" {cur_content} "
+
     comments = get_normalized_comment(comment, col_instruction_count)
+
     lines = []
     address_dec, _ = hex2dec(col_address.contents[0][:-1])
     index_line = 0
@@ -435,9 +458,15 @@ def case4col2(col_address, col_instruction, col_comment):
             # it is a </br> skipt it
             continue
 
-        instruction = f"DEFB {instruction}"
+        if index_line == 0:
+            # first line is a normal one: address already printed and, just the instruction ...
+            lines.append(format_instruction(instruction) + comments[index_line])
+        else:
+            # ... next lines need to print the adress and, are data so a DEFB is needed
+            instruction = f"DEFB {instruction}"
+            lines.append(format_address(f"{address_dec:04X}H") + format_instruction(instruction) + comments[index_line])
+
         address_dec+=1
-        lines.append(format_address(f"{address_dec:04X}H") + format_instruction(instruction) + comments[index_line])
         index_line +=1
 
     for line in lines:
@@ -484,6 +513,7 @@ def case6col2(col_instruction):
 
 
 
+
 def error_and_exit(message):
         print(message, file=sys.stderr)
         sys.exit(1)
@@ -499,6 +529,7 @@ def get_normalized_comment(comment, col_inner_count):
     if col_inner_count == 1:
         return COMMENT_SEPARATOR + comment
     
+    # multiple lines have </br> between instructions in the list that are discarded so normalize to take just the comment lines
     lines_count = (col_inner_count // 2) + 1
     # calculate where to divide line
     cut_point = int(len(comment) / lines_count) - 1
