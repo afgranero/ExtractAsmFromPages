@@ -80,7 +80,8 @@ def process_cols(code_line):
     if case1col2.condition(col_instruction_count):
         case1col2(col_instruction)
     elif case2col2.condition(col_instruction_count, col_instruction):
-        case2col2(col_instruction)
+        end = case2col2(col_address, col_instruction, col_comment)
+        if end: return
     elif case3col2.condition(col_instruction_count, col_instruction):
         case3col2(col_instruction)
     elif case4col2.condition(col_instruction_count, col_instruction):
@@ -234,8 +235,27 @@ def case2col1(col_address, col_instruction, col_comment):
     #
     #   <div class="assembly-row-combined">
     #       <div>0084H<br/>0085H</div>
-    #       <div>RLA<br/>RLA</div>
+    #       <div>RLA
+    #            <br/>
+    #            RLA
+    #       </div>
     #       <div>Rotate the bits of Register left (i.e., lower bit moves higher) two bit positions so that A will correspond to 00H (Variable A) to 64H (Variable Z)</div>
+    #   </div>
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>0AA2H
+    #            <br/>
+    #            0AA3H
+    #            <br/>
+    #            0AA4H
+    #       </div>
+    #       <div>LD A,H
+    #            <br/>\
+    #            CPL
+    #            <br/>
+    #            LD H,A
+    #       </div>
+    #       <div>Invert the bits in Register H.  If H started as 41H, which is 01000001, then the CPL would be 10111110, or 0BEH</div>
     #   </div>
     
     # an alternate format: ..
@@ -349,13 +369,12 @@ def case1col2(col_instruction):
     #   </div>
 
     # normal case: one instruction
-    
     instruction = col_instruction.contents[0].get_text(strip=True)
     print(format_instruction(instruction), end="")
 
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and col_instruction.contents[0][0:3] == "RST")
-def case2col2(col_instruction):
+def case2col2(col_address, col_instruction, col_comment):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -375,7 +394,27 @@ def case2col2(col_instruction):
 
     # an RST followed by two bytes that are parameters skipped by the called routine manipulating PC
     # TODO implement
-    pass
+    col_instruction_count = len(col_instruction.contents)
+    comment = col_comment.contents[0]
+    comments = get_normalized_comment(comment, col_instruction_count)
+    lines = []
+    address_dec, _ = hex2dec(col_address.contents[0][:-1])
+    index_line = 0
+    for index in range(0, col_instruction_count):
+        instruction = col_instruction.contents[index].get_text(strip=True)
+        # TODO add DEFB to parameters (depends on the macro assembler accepting or not bytes  for data without it)
+        if instruction == "":
+            # it is a </br> skipt it
+            continue
+
+        address_dec+=1
+        lines.append(format_address(f"{address_dec:X}H") + format_instruction(instruction) + comments[index_line])
+        index_line +=1
+
+    for line in lines:
+        print(line)
+    
+    return True
 
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and col_instruction.contents[0][0] == '"')
@@ -449,7 +488,7 @@ def get_normalized_comment(comment, col_inner_count):
         lines[i-1] = lines[i-1] + comment[prev_real_cut_point:]
     return lines
 
-def hex2int(s):
+def hex2dec(s):
     if not s:  # int() will not work on empty strings
         return None, False
     try:
@@ -459,7 +498,7 @@ def hex2int(s):
         return None, False
 
 def is_hex(s):
-    _, f = hex2int(s)
+    _, f = hex2dec(s)
     return f
     
 def is_address_valid(address):
@@ -469,8 +508,8 @@ def is_address_valid(address):
     if not hasattr(is_address_valid, "prev_address_dec"):
         is_address_valid.prev_address = "-1H"
 
-    address_dec, f_hex_adddress = hex2int(address[:-1])
-    prev_address_dec, f_hex_prev_adddress = hex2int(is_address_valid.prev_address[:-1])
+    address_dec, f_hex_adddress = hex2dec(address[:-1])
+    prev_address_dec, f_hex_prev_adddress = hex2dec(is_address_valid.prev_address[:-1])
 
     is_address_valid.address_dec = address_dec
     is_address_valid.prev_address_dec = prev_address_dec
