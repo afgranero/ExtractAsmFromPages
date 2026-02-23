@@ -2,6 +2,7 @@ import sys
 import os
 from pathlib import Path
 import operator
+import functools
 
 from bs4 import BeautifulSoup
 
@@ -42,10 +43,7 @@ def process(file):
     else:
         error_and_exit("'assembly-row-combined' class not found.")
 
-    pass
-
 def process_cols(code_line):
-    branches = []
     # easier to have code_line for debugging
 
     # it is needed to know the number of elements prior so I avoid lazy evaluation ...
@@ -69,75 +67,87 @@ def process_cols(code_line):
 
     # column 0 address
     if case1col1.condition(col_address_count):
-        branches.append(101)
         case1col1(col_address)
     elif case2col1.condition(col_address_count, col_instruction_count):
-        branches.append(102)
-        case2col1(col_address, col_instruction, col_comment)
+        end = case2col1(col_address, col_instruction, col_comment)
+        if end: return
     elif case3col1.condition(col_address_count, col_instruction_count):
-        branches.append(103)
         case3col1(col_address, col_instruction, col_comment)
     else:
         error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
 
-    # column 1 instruction  
-    if col_instruction_count == 1:
-        if cols_count == 3:
-            # normal case: address instruction; comment
-            instruction = col_instruction.contents[0].get_text(strip=True)
-            comments = col_comment.contents
-            if col_comment_count == 0:
-                branches.append(201)
-                # there is no comment
-                comment = ""
-            elif col_comment_count == 1:
-                branches.append(202)
-                # normal case one comment
-                comment = comments[0]
-            elif col_comment_count > 1:
-                branches.append(203)
-                # the comment has more than a line  already formatted: ...
-                # ... first line after the instruction ...
-                # ... other lines continuing the comment without instruction before
-                # TODO implement
-                # TODO print print first line complete and just comments on single lines aline
-                # TODO put after next print outside the if so treaats the comments only
-
-                comment = "" # placefolder for now
-                            
-            # TODO here the second parameter of get_normalized_comment 
-            # TODO ... received get_normalized_comment but I think it was wrong ...
-            # TODO ...it treated the cases with 0 and 1 comment only not several
-            print(format_instruction(instruction) + get_normalized_comment(comment, 1))
-        elif cols_count == 2:
-            branches.append(204)
-            # usually just addresses followed by data definitions with no comments: ...
-            # ... print with CR ...
-            # ... skip to the next
-            instruction = col_instruction.contents[0].get_text(strip=True)
-            print(format_instruction(instruction))
+    # column 1 instruction
+    if case1col2.condition(col_instruction_count):
+        case1col2(col_instruction)
+    elif case2col2.condition(col_instruction_count, col_instruction):
+        case2col2(col_instruction)
+    elif case3col2.condition(col_instruction_count, col_instruction):
+        case3col2(col_instruction)
+    elif case4col2.condition(col_instruction_count, col_instruction):
+        case4col2(col_instruction)    
     elif col_instruction_count > 1:
-        branches.append(205)
-        # TODO the instruction: print it
-        # two cases : ...
-        # ... two quotation marks enclosing a single character
-        # TODO implement
-        pass
-        # ... an RST followed by two bytes that are parameters skipped by the called routine manipulating PC
-        # TODO implement
+        # TODO it is here for remaining cases not treated we can remove after all cases are made
         pass
 
-    pass
+    
+    # TODO when comments section is added remove this because it will print with end char and treat case of no coments at all
+    print()
 
-    # numbers in the 100-199 are cases for address column
-    # numbers in the range 200-299 are for instruction and comment columns
-    all_branches = [[101, 201], [101, 202], [101, 203], [101, 204], [101, 205], [102, 205], [103, 202]]
-    process_cols.count_branches[all_branches.index(branches)] += 1
-    if branches not in all_branches:
-        # number of times passes at each branch: [47, 1724, 274, 3, 50, 18, 1]
-        # TODO use the ifs to select the branches list only and separate each processing case in one function ...
-        # TODO ... pass address and 
-        pass
+    # TODO keep while i transform remaining cases in calls to functions specially comments that were treated in column 1
+    # # column 2 comments
+    # if col_instruction_count == 1:
+    #     if cols_count == 3:
+    #         # normal case: address instruction; comment
+    #         instruction = col_instruction.contents[0].get_text(strip=True)
+    #         comments = col_comment.contents
+    #         if col_comment_count == 0:
+    #             # there is no comment
+    #             comment = ""
+    #         elif col_comment_count == 1:
+    #             # normal case one comment
+    #             comment = comments[0]
+    #         elif col_comment_count > 1:
+    #             # the comment has more than a line  already formatted: ...
+    #             # ... first line after the instruction ...
+    #             # ... other lines continuing the comment without instruction before
+    #             # TODO implement
+    #             # TODO print print first line complete and just comments on single lines aline
+    #             # TODO put after next print outside the if so treaats the comments only
+
+    #             comment = "" # placefolder for now
+                            
+    #         # TODO here the second parameter of get_normalized_comment 
+    #         # TODO ... received get_normalized_comment but I think it was wrong ...
+    #         # TODO ...it treated the cases with 0 and 1 comment only not several
+    #         print(format_instruction(instruction) + get_normalized_comment(comment, 1))
+    #     elif cols_count == 2:
+    #         # usually just addresses followed by data definitions with no comments: ...
+    #         # ... print with CR ...
+    #         # ... skip to the next
+    #         instruction = col_instruction.contents[0].get_text(strip=True)
+    #         print(format_instruction(instruction))
+    # elif col_instruction_count > 1:
+    #     # TODO the instruction: print it
+    #     # four cases : ...
+    #     # ... two quotation marks enclosing a single character
+    #     # TODO implement
+    #     # ... an RST followed by two bytes that are parameters skipped by the called routine manipulating PC
+    #     # TODO implement
+    #     # ... several cases where instruction followed by another with the address only in the first they grouped with only one comment because they execute a single operation
+    #     # TODO implement
+    #     # ... several cases where the instruction is repeated below with no address and with an hexadecimal immediate in ascii or binary form alone or with the instruction
+    #     # TODO implement
+        
+    #     pass
+
+def call_count(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        wrapper.calls_count += 1
+        return func(*args, **kwargs)
+    
+    wrapper.calls_count = 0
+    return wrapper
 
 # attributes in funtions are only initialized the first time tunction is called...
 # ... using a decorator that is run at definition I can use them,
@@ -147,6 +157,7 @@ def with_condition(condition):
         return func
     return decorator
 
+@call_count
 @with_condition(lambda cols_count: cols_count == 4)
 def case1general(cols):
     # example:
@@ -162,7 +173,6 @@ def case1general(cols):
     # ... you can ignore the second DIV if it repeats the instruction ...
     # ... the repeat was inadvertly put as comment garbling format ...
     # ... remove it
-
     if cols[1].get_text() != cols[2].get_text():
         error_and_exit(f"Unexpected format: repeatded instruction does not match: '{cols[1].get_text()}', '{cols[2].get_text()}'.")
 
@@ -170,29 +180,54 @@ def case1general(cols):
 
     return cols, len(cols)
 
+@call_count
 @with_condition(lambda col_address_count: col_address_count == 1)
 def case1col1(col_address):
-    # example:
+    # examples:
     # 
     #   <div class="assembly-row-combined">
     #       <div>0000H</div>
     #       <div>DI</div>
     #       <div>Disable Interrupts.</div>
     #   </div>
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>0000H</div>
+    #       <div>DI</div>
+    #       <div>Disable Interrupts.</div>
+    #   </div>
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>000AH</div>
+    #       <div>CP (HL)</div>
+    #       <div>Compare  the next non-space character (held in Register A) against the value held at the top of the 
+    #           stack (i..e, in the memory location pointed to by  the value held in Register Pair HL).  Results: 
+    #           <ul>
+    #               <li>If Register A equals the value held in Register (HL), the Z FLAG is set.</li>
+    #               <li>If A &lt; (HL), the CARRY FLAG will be set.</li>
+    #               <li>if A &gt;= (HL), the NO CARRY FLAG will be set.</li>
+    #           </ul>
+    #       </div>
+    #   </div>
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>0EB2H</div>
+    #       <div>DEFB 40H E7H 4DH</div>
+    #   </div>
     
     # normal case: one address
-    
     address = col_address.contents[0]
     if not is_address_valid(address):
-            # if address is 015EH this an error on the page content, a routine was repeated
-            # TODO if address is 015EH set flag to skip next repeat with a return until it reaches 015EH when the flag is reset ...
-            # TODO ... there are several errors on the page at 
-            # TODO ... 0155H, 0249H, 0287H, 0842H, 08B6H
+        # TODO if address is 015EH set flag to skip next repeat with a return until it reaches 015EH when the flag is reset ...
+        # TODO ... there are several errors on the page at 
+        # TODO ... 0155H, 0249H, 0287H, 0842H, 08B6H
+        # TODO return is here so we can treat all cases and test remove when ready
         return
         error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{is_address_valid.prev_address_dec:X}H'.")
 
     print(format_address(address), end="")
 
+@call_count
 @with_condition(lambda col_address_count, col_instruction_count: col_address_count in [3, 5] and col_address_count == col_instruction_count)
 def case2col1(col_address, col_instruction, col_comment):
     # example
@@ -207,7 +242,6 @@ def case2col1(col_address, col_instruction, col_comment):
     # ... several addresses in one tag on column 1 separated by </br>
     # ... several instructions in one tag on column 2 separated by </br>
     # ... so the comment is applied to those group of addresses and instructions
-
     col_address_count = len(col_address.contents)
     comment = col_comment.contents[0]
     comments = get_normalized_comment(comment, col_address_count)
@@ -228,6 +262,7 @@ def case2col1(col_address, col_instruction, col_comment):
         if not is_address_valid(address):
             # TODO ... there are several errors on the page at 
             # TODO ... 04ECH, 0501H, 066AAH, 08D4H, 0A89H, 0AB1H, 0E4AH
+            # TODO return is here so we can treat all cases and test remove when ready
             return
             error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{is_address_valid.prev_address_dec:X}H'.")
 
@@ -237,6 +272,9 @@ def case2col1(col_address, col_instruction, col_comment):
     for line in lines:
         print(line)
 
+    return True
+
+@call_count
 @with_condition(lambda col_address_count, col_instruction_count: col_address_count == 3 and col_instruction_count == 1)
 def case3col1(col_address, col_instruction, col_comment):
     # example
@@ -275,6 +313,105 @@ def case3col1(col_address, col_instruction, col_comment):
     for line in lines:
         print(line)
 
+@call_count
+@with_condition(lambda col_instruction_count: col_instruction_count == 1)
+def case1col2(col_instruction):
+    # examples:
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>01A9H</div>
+    #       <div>"HOW?" + 0DH</div>
+    #       <div></div>
+    #   </div>
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>0000H</div>
+    #       <div>DI</div>
+    #       <div>Disable Interrupts.</div>
+    #   </div>
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>000AH</div>
+    #       <div>CP (HL)</div>
+    #       <div>Compare the next non-space character (held in Register A) against the value held at the top of the 
+    #           stack (i..e, in the memory location pointed to by  the value held in Register Pair HL).  Results: 
+    #           <ul>
+    #               <li>If Register A equals the value held in Register (HL), the Z FLAG is set.</li>
+    #               <li>If A &lt; (HL), the CARRY FLAG will be set.</li>
+    #               <li>if A &gt;= (HL), the NO CARRY FLAG will be set.</li>
+    #           </ul>
+    #       </div>
+    #   </div>
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>0EB2H</div>
+    #       <div>DEFB 40H E7H 4DH</div>
+    #   </div>
+
+    # normal case: one instruction
+    
+    instruction = col_instruction.contents[0].get_text(strip=True)
+    print(format_instruction(instruction), end="")
+
+@call_count
+@with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and col_instruction.contents[0][0:3] == "RST")
+def case2col2(col_instruction):
+    # example:
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>0044H</div>
+    #       <div>RST 08H
+    #            <br/>
+    #            28H
+    #            <br/>
+    #            <a class="memory-link" href="#0081H">3AH</a>
+    #       </div>
+    #       <div>Next we need to check for the array, which means a parenthesis. We do this a  call to RST 08H with 
+    #            parameters of "(" and an offset of 3AH.  RST 08H will move to the next non-space character and check 
+    #            it against 28H (which is a "(").  If there is no match, jump to the return (of the next instruction, 
+    #            i.e. 0047H) + 3AH instructions (which would be 0081H).
+    #       </div>
+    #   </div>
+
+    # an RST followed by two bytes that are parameters skipped by the called routine manipulating PC
+    # TODO implement
+    pass
+
+@call_count
+@with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and col_instruction.contents[0][0] == '"')
+def case3col2(col_instruction):
+    # example:
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>032DH</div>
+    #       <div>"<span class="code">&gt;</span>"</div>
+    #       <div></div>
+    #   </div>
+
+    # two quotation marks enclosing a single character like <, >, =
+    # TODO implement
+    pass
+
+@call_count
+@with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and is_hex(col_instruction.contents[0][-3:-1]))
+def case4col2(col_instruction):
+    # example:
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>047AH</div>
+    #       <div>LD A,20H
+    #            <br/>
+    #            LD A," "
+    #       </div>
+    #       <div>Let Register A equal 20H (ASCII: <span class="code">SPACE</span>).</div>
+    #   </div>
+    #
+
+    # the instruction is repeated below with no address and with an two byte hexadecimal immediate 
+    # ... in ascii or binary form alone or with the instruction ...
+    # ... print only the first instruction
+    instruction = col_instruction.contents[0].get_text(strip=True)
+    print(format_instruction(instruction), end="")
 
 def error_and_exit(message):
         print(message, file=sys.stderr)
@@ -312,14 +449,18 @@ def get_normalized_comment(comment, col_inner_count):
         lines[i-1] = lines[i-1] + comment[prev_real_cut_point:]
     return lines
 
-def is_hex(s):
+def hex2int(s):
     if not s:  # int() will not work on empty strings
-        return False
+        return None, False
     try:
         i = int(s, 16)
-        return True, i
+        return i, True
     except ValueError:
-        return False, None
+        return None, False
+
+def is_hex(s):
+    _, f = hex2int(s)
+    return f
     
 def is_address_valid(address):
     # checks if: ...
@@ -328,14 +469,13 @@ def is_address_valid(address):
     if not hasattr(is_address_valid, "prev_address_dec"):
         is_address_valid.prev_address = "-1H"
 
-    f_hex_adddress, address_dec = is_hex(address[:-1])
-    f_hex_prev_adddress, prev_address_dec = is_hex(is_address_valid.prev_address[:-1])
+    address_dec, f_hex_adddress = hex2int(address[:-1])
+    prev_address_dec, f_hex_prev_adddress = hex2int(is_address_valid.prev_address[:-1])
 
     is_address_valid.address_dec = address_dec
     is_address_valid.prev_address_dec = prev_address_dec
     is_address_valid.prev_address = address
     return f_hex_adddress and f_hex_prev_adddress and (0 <= address_dec <= 65535 and address_dec > prev_address_dec)
-
 
 def main():
     path = "."
