@@ -5,6 +5,7 @@ import operator
 import functools
 
 from bs4 import BeautifulSoup
+from bs4 import element
 
 
 WIDTH_ADDRESS = 12
@@ -44,6 +45,11 @@ def process(file):
         error_and_exit("'assembly-row-combined' class not found.")
 
 def process_cols(code_line):
+    # TODO fix wrong parts as wrongs addresses or repeated parts using a skip list depending on the file
+    # TODO process comments as box titles
+    # TODO fiz DEFB directives with two byte number that should be used as DEFW ones;
+    # TODO process comments yellow boxes
+
     # easier to have code_line for debugging
 
     # it is needed to know the number of elements prior so I avoid lazy evaluation ...
@@ -104,39 +110,11 @@ def process_cols(code_line):
         case1col3()
     elif case2col3.condition(col_comment_count):
         case2col3(col_comment)
+    elif case3col3.condition(col_comment_count):
+        case3col3(col_comment)
     else:
-        # TODO when comments section is added remove this because it will print with end char and treat case of no coments at all
-        print()
-        pass
+       error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
     
-    # TODO keep while i transform remaining cases in calls to functions specially comments that were treated in column 1
-    # # column 2 comments
-    # if col_instruction_count == 1:
-    #     if cols_count == 3:
-    #         # normal case: address instruction; comment
-    #         instruction = col_instruction.contents[0].get_text(strip=True)
-    #         comments = col_comment.contents
-    #         if col_comment_count == 0:
-    #             # there is no comment
-    #             comment = ""
-    #         elif col_comment_count == 1:
-    #             # normal case one comment
-    #             comment = comments[0]
-    #         elif col_comment_count > 1:
-    #             # the comment has more than a line  already formatted: ...
-    #             # ... first line after the instruction ...
-    #             # ... other lines continuing the comment without instruction before
-    #             # TODO implement
-    #             # TODO print print first line complete and just comments on single lines aline
-    #             # TODO put after next print outside the if so treaats the comments only
-
-    #             comment = "" # placefolder for now
-                            
-    #         # TODO here the second parameter of get_normalized_comment 
-    #         # TODO ... received get_normalized_comment but I think it was wrong ...
-    #         # TODO ...it treated the cases with 0 and 1 comment only not several
-    #         print(format_instruction(instruction) + get_normalized_comment(comment, 1))
-
 def call_count(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -586,6 +564,110 @@ def case2col3(col_comment):
         if len(comments) != 1 and index == len(comments) - 1:
             print()
 
+@call_count
+@with_condition(lambda col_comment_count: col_comment_count > 1)
+def case3col3(col_comment):
+    # example:
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>000AH</div>
+    #       <div>CP (HL)</div>
+    #       <div>Compare  the next non-space character (held in Register A) against the value held at the top of the stack (i..e, 
+    #            in the memory location pointed to by the value held in Register Pair HL).  
+    #            Results: 
+    #            <ul>
+    #               <li>If Register A equals the value held in Register (HL), the Z FLAG is set.</li>
+    #               <li>If A &lt; (HL), the CARRY FLAG will be set.</li>
+    #               <li>if A &gt;= (HL), the NO CARRY FLAG will be set.</li>
+    #           </ul>
+    #       </div>
+    #   </div>
+    #
+    #   <div class="assembly-row-combined">
+    #       div>0B8AH</div>
+    #       <div>
+    #           <a class="memory-link" href="#0BA5H">
+    #           CALL 0BA5H
+    #           </a>
+    #       </div>
+    #       <div>GOSUB to 0BA5H to check for a 
+    #            <kbd>
+    #            SHIFT
+    #            </kbd>
+    #            , set the FLAGS, and put Register B into Register A.
+    #       </div>
+    #   </div>
+
+    # ... one case:
+    # ... the comment has more than a line  already formatted: ...
+    # ...    first line after the instruction ...
+    # ...    other lines continuing the comment without instruction before ...
+    # ... other case ...
+    # ...    some foprmatting like kbd that spreads it in lines
+
+    # add lines wiithout spliting trivial tags just removint them
+    temp_lines = []
+    for content in col_comment.contents:
+        if type(content) is element.NavigableString:
+            if len(temp_lines) == 0:
+                temp_lines.append(content.get_text(strip=True))
+            else:
+                temp_lines[-1] += f" {content.get_text(strip=True)} "
+
+        elif type(content) is element.Tag and content.name == "ul":
+            for index, comment in enumerate(content.contents):
+                comment_text = comment.get_text()
+                if comment_text != "":
+                    temp_lines.append(comment_text)
+
+        elif type(content) is element.Tag and content.name in ["span", "b", "a", "br", "kbd"]:
+            temp_lines[-1] += f" {content.get_text()} "
+        elif type(content) is element.Tag:
+            error_and_exit(f"Unexpected tag: '{content.name}'")
+        else:
+            error_and_exit(f"Unexpected format: '{col_comment.decode_contents()}'")
+
+    # split long lines
+    full_split_lines = []
+    for line in temp_lines:
+        partial_split_lines = get_normalized_comment(line, 1)
+        for split_line in partial_split_lines:
+            # removes "; " at the start (subproduct of get_normalized_comment)
+            full_split_lines.append(split_line[2:])
+    
+    lines = []
+    for temp_line in full_split_lines:
+        lines_len = len(lines)
+
+        if lines_len == 0 and split_line.startswith("... "):
+            # it is the first line should not have "... " at the start: remove it
+            temp_line = temp_line[4:]
+
+        if lines_len != 0 and lines_len != len(full_split_lines) - 1 and not temp_line.endswith(" ..."):
+            # it is a line in the middle and it does not have " ..." at the end: add it
+            temp_line = f"{temp_line} ..."
+
+        if lines_len != 0 and not temp_line.startswith("... "):
+            # it is a line that is not the first and it does not have "... " at the start: add it"
+            temp_line = f"... {temp_line}"
+
+        if lines_len == len(full_split_lines) - 1 and temp_line.endswith(" ..."):
+            # it is the last line should not have " ..." at the end: remove it
+            temp_line = temp_line[:-4]
+
+        # re adds the "; "st the start
+        temp_line = f"; {temp_line}"
+        # finally adds the line
+        lines.append(temp_line)
+
+    for index, line in enumerate(lines):
+        if index == 0:
+            print(line)
+        else:
+            print(f"{' '*(WIDTH_ADDRESS+WIDTH_INSTRUCTION)}{line}")
+    
+    print()
+
 def error_and_exit(message):
         print(message, file=sys.stderr)
         sys.exit(1)
@@ -620,7 +702,7 @@ def get_normalized_comment(comment, col_inner_count):
         if i == lines_count: prefix, suffix = PRE_DOTS, ""
 
         line = comment[prev_real_cut_point:real_cut_point]
-        lines.append(COMMENT_SEPARATOR + prefix + line + suffix)
+        lines.append(COMMENT_SEPARATOR + prefix + line.strip() + suffix)
 
         prev_real_cut_point = real_cut_point
     else:
