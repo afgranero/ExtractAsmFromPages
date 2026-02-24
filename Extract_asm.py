@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 
 
 WIDTH_ADDRESS = 12
-WIDTH_INSTRUCTION = 16
+WIDTH_INSTRUCTION = 26
 WIDTH_COMMENT = 100
 PRE_DOTS = "... "
 POST_DOTS = " ..."
@@ -57,6 +57,9 @@ def process_cols(code_line):
     col_address = cols[COL_INDEX_ADDRESS]
     col_address_count = len(col_address.contents)
 
+    if "0249H" in col_address:
+        pass
+
     col_instruction = cols[COL_INDEX_INSTRUCTION]
     col_instruction_count = len(col_instruction.contents)
 
@@ -64,7 +67,8 @@ def process_cols(code_line):
         # there is a case where there are no comments: so cols does not have 3 elements
         col_comment = cols[COL_INDEX_COMMENT]
         col_comment_count = len(col_comment.contents)
-
+    else:
+        col_comment_count = 0
     # column 0 address
     if case1col1.condition(col_address_count):
         case1col1(col_address)
@@ -90,10 +94,12 @@ def process_cols(code_line):
     elif case5col2.condition(col_instruction_count, col_instruction):
         case5col2(col_instruction)
     elif case6col2.condition(col_instruction_count, col_instruction):
-        case6col2(col_instruction)  
-    elif col_instruction_count > 1:
-        # TODO it is here for remaining cases not treated we can remove after all cases are made
-        pass
+        case6col2(col_instruction)
+    elif case7col2.condition(col_instruction_count, col_comment_count):
+        end = case7col2(col_address, col_instruction, col_comment)
+        if end: return
+    else:
+        error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
 
     
     # TODO when comments section is added remove this because it will print with end char and treat case of no coments at all
@@ -435,7 +441,6 @@ def case4col2(col_address, col_instruction, col_comment):
     #   </div>
 
     # an RST followed by two bytes that are parameters skipped by the called routine manipulating PC
-
     col_instruction_count = len(col_instruction.contents)
 
     comment = ""
@@ -511,7 +516,56 @@ def case6col2(col_instruction):
     instruction = col_instruction.contents[0].get_text(strip=True)
     print(format_instruction(instruction), end="")
 
+@call_count
+@with_condition(lambda col_instruction_count, col_comment_count: col_instruction_count > 1 and col_comment_count == 1)
+def case7col2(col_address, col_instruction, col_comment):
+    # example:
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>01ECH</div>
+    #       <div>LD A,H
+    #            <br/>
+    #            OR L
+    #       </div>
+    #       <div>Since the Z-80 cannot test Register Pair HL against zero, the common trick is Register L. 
+    #            Only if both Register H and Register L were zero can the Z FLAG be set.
+    #       </div>
+    #   </div>
 
+    # a instruction is followed by another with the address only in the first one ...
+    # ... they are grouped with only one comment because they execute a single operation
+    
+    # just one comment as it is in the condition of the case
+    col_instruction_count = len(col_instruction.contents)
+    comment = col_comment.contents[0]
+    comments = get_normalized_comment(comment, col_instruction_count)
+
+    lines = []
+    address_dec, _ = hex2dec(col_address.contents[0][:-1])
+    index_line = 0
+    for index in range(0, col_instruction_count):
+        instruction = col_instruction.contents[index].get_text(strip=True)
+        if instruction == "":
+            # it is a </br> skipt it
+            continue
+
+        if index_line == 0:
+            # first line is a normal one: address already printed and, just the instruction ...
+            lines.append(format_instruction(instruction) + comments[index_line])
+        else:
+            # ... next lines need to print the adress and, are data so a DEFB is needed
+            lines.append(format_address(f"{address_dec:04X}H") + format_instruction(instruction) + comments[index_line])
+
+        address_dec+=1
+        index_line +=1
+
+    for line in lines:
+        print(line)
+    
+    return True
+
+
+    pass
 
 
 def error_and_exit(message):
