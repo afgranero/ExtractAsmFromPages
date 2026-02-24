@@ -57,9 +57,6 @@ def process_cols(code_line):
     col_address = cols[COL_INDEX_ADDRESS]
     col_address_count = len(col_address.contents)
 
-    if "0249H" in col_address:
-        pass
-
     col_instruction = cols[COL_INDEX_INSTRUCTION]
     col_instruction_count = len(col_instruction.contents)
 
@@ -69,6 +66,7 @@ def process_cols(code_line):
         col_comment_count = len(col_comment.contents)
     else:
         col_comment_count = 0
+
     # column 0 address
     if case1col1.condition(col_address_count):
         case1col1(col_address)
@@ -101,10 +99,16 @@ def process_cols(code_line):
     else:
         error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
 
+    # column 2 comments
+    if case1col3.condition(col_comment_count):
+        case1col3()
+    elif case2col3.condition(col_comment_count):
+        case2col3(col_comment)
+    else:
+        # TODO when comments section is added remove this because it will print with end char and treat case of no coments at all
+        print()
+        pass
     
-    # TODO when comments section is added remove this because it will print with end char and treat case of no coments at all
-    print()
-
     # TODO keep while i transform remaining cases in calls to functions specially comments that were treated in column 1
     # # column 2 comments
     # if col_instruction_count == 1:
@@ -132,25 +136,6 @@ def process_cols(code_line):
     #         # TODO ... received get_normalized_comment but I think it was wrong ...
     #         # TODO ...it treated the cases with 0 and 1 comment only not several
     #         print(format_instruction(instruction) + get_normalized_comment(comment, 1))
-    #     elif cols_count == 2:
-    #         # usually just addresses followed by data definitions with no comments: ...
-    #         # ... print with CR ...
-    #         # ... skip to the next
-    #         instruction = col_instruction.contents[0].get_text(strip=True)
-    #         print(format_instruction(instruction))
-    # elif col_instruction_count > 1:
-    #     # TODO the instruction: print it
-    #     # four cases : ...
-    #     # ... two quotation marks enclosing a single character
-    #     # TODO implement
-    #     # ... an RST followed by two bytes that are parameters skipped by the called routine manipulating PC
-    #     # TODO implement
-    #     # ... several cases where instruction followed by another with the address only in the first they grouped with only one comment because they execute a single operation
-    #     # TODO implement
-    #     # ... several cases where the instruction is repeated below with no address and with an hexadecimal immediate in ascii or binary form alone or with the instruction
-    #     # TODO implement
-        
-    #     pass
 
 def call_count(func):
     @functools.wraps(func)
@@ -341,7 +326,7 @@ def case3col1(col_address, col_instruction, col_comment):
 
     lines = []
     instruction = col_instruction.contents[0].get_text(strip=True)
-    comment = get_normalized_comment(col_comment.contents[0], 1)
+    comment = get_normalized_comment(col_comment.contents[0], 1)[0]
     lines.append(format_address(address1) + format_instruction(instruction) + comment)
     lines.append(format_address(address3) + format_instruction(instruction))
 
@@ -564,9 +549,42 @@ def case7col2(col_address, col_instruction, col_comment):
     
     return True
 
+@call_count
+@with_condition(lambda col_comment_count: col_comment_count == 0)
+def case1col3():
+    # exemplo:
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>01C0H</div>
+    #       <div>"BREAK AT"</div>
+    #       <div></div>
+    #   </div>
+    #
 
-    pass
+    # there is no comment
+    print()
 
+@call_count
+@with_condition(lambda col_comment_count: col_comment_count == 1)
+def case2col3(col_comment):
+    # example:
+    #
+    #   <div class="assembly-row-combined">
+    #       <div>0000H</div>
+    #       <div>DI</div>
+    #       <div>Disable Interrupts.</div>
+    #   </div>
+
+    # normal case one comment
+    comments = get_normalized_comment(col_comment.contents[0], 1)
+    for index, comment in enumerate(comments):
+        if index == 0:
+            print(comment)
+        else:
+            print(f"{' '*(WIDTH_ADDRESS+WIDTH_INSTRUCTION)}{comment}")
+
+        if len(comments) != 1 and index == len(comments) - 1:
+            print()
 
 def error_and_exit(message):
         print(message, file=sys.stderr)
@@ -581,10 +599,14 @@ def format_instruction(instruction):
 def get_normalized_comment(comment, col_inner_count):
     comment = comment.replace("\r", "").replace("\n","")
     if col_inner_count == 1:
-        return COMMENT_SEPARATOR + comment
-    
-    # multiple lines have </br> between instructions in the list that are discarded so normalize to take just the comment lines
-    lines_count = (col_inner_count // 2) + 1
+        if len(comment) > WIDTH_COMMENT:
+            lines_count = int(len(comment)  / WIDTH_COMMENT) + 1
+        else:
+            return [COMMENT_SEPARATOR + comment]
+    else:
+        # multiple lines have </br> between instructions in the list that are discarded so normalize to take just the comment lines
+        lines_count = (col_inner_count // 2) + 1
+
     # calculate where to divide line
     cut_point = int(len(comment) / lines_count) - 1
     # divide line adding ... on the end of the first and ... at the start of the others
