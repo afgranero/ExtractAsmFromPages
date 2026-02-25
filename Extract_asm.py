@@ -63,24 +63,35 @@ def process_classes(code_line):
 def process_assembly_section_title(code_line):
     # TODO this is a template put the text in the middle
     dashes_count = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - 4
+    box = f"; +{'='*(dashes_count)}+"
+    box_space = f"; |{' '*(dashes_count)}|"
+    text = f"{code_line.contents[0].get_text():<{dashes_count-2}}"
+
     print()
-    print(f"; +{'='*(dashes_count)}+")
-    print(f"; |{' '*(dashes_count)}|")
-    print(f"; |{' '*(dashes_count)}|")
-    print(f"; +{'='*(dashes_count)}+")
+    print(box)
+    print(box_space)
+    print(f"; | {text}|")
+    print(box_space)
+    print(box)
     print()
 
 def process_debug_note(code_line):
     # TODO this is a template put the text in the middle
-    dashes_count = WIDTH_INSTRUCTION + WIDTH_COMMENT - 1
+    dashes_count = WIDTH_INSTRUCTION + WIDTH_COMMENT - 4 + 3
     spaces_count = WIDTH_ADDRESS - 3
-    print()
-    print(f"{' '*spaces_count}; +{'-'*(dashes_count)}+")
-    print(f"{' '*spaces_count}; |{' '*(dashes_count)}|")
-    print(f"{' '*spaces_count}; |{' '*(dashes_count)}|")
-    print(f"{' '*spaces_count}; +{'-'*(dashes_count)}+")
-    print()
+    spaces = f"{' '*spaces_count}"
+    box = f"{spaces}; +{'-'*(dashes_count)}+"
+    box_space = f"{spaces}; |{' '*(dashes_count)}|"
+    text = f"{code_line.get_text():<{dashes_count-1}}"
+    text = text.replace("\r", "").replace("\n","")
 
+    print()
+    print(box)
+    print(box_space)
+    print(f"{' '*spaces_count}; | {text}|")
+    print(box_space)
+    print(box)
+    print()
 
 def process_assembly_row_combined(code_line):
     # TODO fix wrong parts as wrongs addresses or repeated parts using a skip list depending on the file
