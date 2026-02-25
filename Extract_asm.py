@@ -11,9 +11,11 @@ from bs4 import element
 WIDTH_ADDRESS = 12
 WIDTH_INSTRUCTION = 26
 WIDTH_COMMENT = 100
+
 PRE_DOTS = "... "
 POST_DOTS = " ..."
 COMMENT_SEPARATOR = "; "
+
 COL_INDEX_ADDRESS = 0
 COL_INDEX_INSTRUCTION = 1
 COL_INDEX_COMMENT= 2
@@ -32,25 +34,60 @@ def process(file):
         error_and_exit(f"Error reading file '{file}': {e}")
 
     soup = BeautifulSoup(content, 'html.parser')
-    code_lines = soup.find_all('div', class_='assembly-row-combined')
+    # TODO process assembly-section-title class
+    # TODO process debug-note class
+
+
+    # code_lines = soup.find_all('div', class_='assembly-row-combined')
+    div_classes = 'div.assembly-row-combined, h2.assembly-section-title, p.debug-note'
+    code_lines = soup.select(div_classes)
 
     if code_lines:
-        process_cols.count_branches = [0] * 7
         for code_line in code_lines:
-            if code_line.name == "div":
-                process_cols(code_line)
-            else:
-                error_and_exit(f"Unexpected content found: '{code_line.decode_contents()}'")
+            process_classes(code_line)
     else:
-        error_and_exit("'assembly-row-combined' class not found.")
+        pass
 
-def process_cols(code_line):
+def process_classes(code_line):
+    classes = code_line.attrs["class"]
+
+    if "assembly-row-combined" in classes:
+        process_assembly_row_combined(code_line)
+    elif "assembly-section-title" in classes:
+        process_assembly_section_title(code_line)
+    elif "debug-note" in classes:
+        process_debug_note(code_line)
+    else:
+        pass
+
+def process_assembly_section_title(code_line):
+    # TODO this is a template put the text in the middle
+    dashes_count = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - 4
+    print()
+    print(f"; +{'='*(dashes_count)}+")
+    print(f"; |{' '*(dashes_count)}|")
+    print(f"; |{' '*(dashes_count)}|")
+    print(f"; +{'='*(dashes_count)}+")
+    print()
+
+def process_debug_note(code_line):
+    # TODO this is a template put the text in the middle
+    dashes_count = WIDTH_INSTRUCTION + WIDTH_COMMENT - 1
+    spaces_count = WIDTH_ADDRESS - 3
+    print()
+    print(f"{' '*spaces_count}; +{'-'*(dashes_count)}+")
+    print(f"{' '*spaces_count}; |{' '*(dashes_count)}|")
+    print(f"{' '*spaces_count}; |{' '*(dashes_count)}|")
+    print(f"{' '*spaces_count}; +{'-'*(dashes_count)}+")
+    print()
+
+
+def process_assembly_row_combined(code_line):
     # TODO fix wrong parts as wrongs addresses or repeated parts using a skip list depending on the file
     # TODO process comments as box titles
-    # TODO fiz DEFB directives with two byte number that should be used as DEFW ones;
     # TODO process comments yellow boxes
 
-    # easier to have code_line for debugging
+    # easier to have code_line for debugging and error messages
 
     # it is needed to know the number of elements prior so I avoid lazy evaluation ...
     # ... at this point there will be about 3 elements tops so it is not a problem
@@ -751,11 +788,9 @@ def main():
     if nparams > 2:
         print("Too many parameters, only the first one will be used.")
 
-    # script_dir = Path(__file__).resolve().parent
-    # path = os.path.join(script_dir, path)
+    script_dir = Path(__file__).resolve().parent
+    path = os.path.join(script_dir, path)
 
-
-    # 
     files = []
     if os.path.isdir(path):
         with os.scandir(path) as entries:
