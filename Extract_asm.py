@@ -8,13 +8,16 @@ from bs4 import BeautifulSoup
 from bs4 import element
 
 
-WIDTH_ADDRESS = 12
-WIDTH_INSTRUCTION = 26
+WIDTH_ADDRESS = 8
+WIDTH_INSTRUCTION = 24
 WIDTH_COMMENT = 100
 
-PRE_DOTS = "... "
-POST_DOTS = " ..."
-COMMENT_SEPARATOR = "; "
+DELIMITER_SPLIT_COMMENT = "..."
+PRE_DOTS = DELIMITER_SPLIT_COMMENT + " "
+POST_DOTS = " " + DELIMITER_SPLIT_COMMENT
+DELIMITER_COMMENT = ";"
+DELIMITER_LEFT = DELIMITER_COMMENT + " "
+DELIMITER_RIGHT = " " + DELIMITER_COMMENT
 
 COL_INDEX_ADDRESS = 0
 COL_INDEX_INSTRUCTION = 1
@@ -61,35 +64,50 @@ def process_classes(code_line):
         pass
 
 def process_assembly_section_title(code_line):
-    # TODO this is a template put the text in the middle
-    dashes_count = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - 4
-    box = f"; +{'='*(dashes_count)}+"
-    box_space = f"; |{' '*(dashes_count)}|"
-    text = f"{code_line.contents[0].get_text():<{dashes_count-2}}"
+    dashes_count = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - 2*len(DELIMITER_COMMENT)
+    box = f"{DELIMITER_COMMENT}{'-'*(dashes_count)}{DELIMITER_COMMENT}"
+    box_space = f"{DELIMITER_COMMENT}{' '*(dashes_count)}{DELIMITER_COMMENT}"
 
+    delimiters_width = len(DELIMITER_LEFT) + len(DELIMITER_RIGHT)
+    text_width = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - delimiters_width
+
+    # remove symbol of clipboard at the end of title
+    code_line.contents[len(code_line.contents)-1].extract()
+
+    text = code_line.get_text()
+    text = text.replace("\r", "").replace("\n","")
+    lines = get_comment_lines(text, text_width)
+    
     print()
     print(box)
     print(box_space)
-    print(f"; | {text}|")
+    for line in lines:
+        print(f"{DELIMITER_LEFT}{line:<{text_width}}{DELIMITER_RIGHT}")
     print(box_space)
     print(box)
     print()
 
 def process_debug_note(code_line):
     # TODO this is a template put the text in the middle
-    dashes_count = WIDTH_INSTRUCTION + WIDTH_COMMENT - 4 + 3
-    spaces_count = WIDTH_ADDRESS - 3
+    dashes_count = WIDTH_INSTRUCTION + WIDTH_COMMENT - 2*len(DELIMITER_COMMENT)
+    spaces_count = WIDTH_ADDRESS
     spaces = f"{' '*spaces_count}"
-    box = f"{spaces}; +{'-'*(dashes_count)}+"
-    box_space = f"{spaces}; |{' '*(dashes_count)}|"
-    text = f"{code_line.get_text():<{dashes_count-1}}"
+    box = f"{spaces}{DELIMITER_COMMENT}{'-'*(dashes_count)}{DELIMITER_COMMENT}"
+    box_space = f"{spaces}{DELIMITER_COMMENT}{' '*(dashes_count)}{DELIMITER_COMMENT}"
+    delimiters_width = len(DELIMITER_LEFT) + len(DELIMITER_RIGHT)
+    text_width = WIDTH_INSTRUCTION + WIDTH_COMMENT - delimiters_width
+
+    text = f"{code_line.get_text():<{text_width}}"
+    text = code_line.get_text()
     text = text.replace("\r", "").replace("\n","")
+    lines = get_comment_lines(text, text_width)
 
     print()
     print(box)
-    print(box_space)
-    print(f"{' '*spaces_count}; | {text}|")
-    print(box_space)
+    # print(box_space)
+    for line in lines:
+        print(f"{' '*spaces_count}{DELIMITER_LEFT}{line:<{text_width}}{DELIMITER_RIGHT}")
+    # print(box_space)
     print(box)
     print()
 
@@ -298,7 +316,7 @@ def case2col1(col_address, col_instruction, col_comment):
         instruction = col_instruction.contents[index].get_text(strip=True)
 
         if address == "" and instruction == "":
-            # it is a </br> skipt it
+            # it is a </br> skip it
             continue
  
         if operator.xor(address == "", instruction == ""):
@@ -732,7 +750,7 @@ def get_normalized_comment(comment, col_inner_count):
         if len(comment) > WIDTH_COMMENT:
             lines_count = int(len(comment)  / WIDTH_COMMENT) + 1
         else:
-            return [COMMENT_SEPARATOR + comment]
+            return [DELIMITER_LEFT + comment]
     else:
         # multiple lines have </br> between instructions in the list that are discarded so normalize to take just the comment lines
         lines_count = (col_inner_count // 2) + 1
@@ -750,12 +768,67 @@ def get_normalized_comment(comment, col_inner_count):
         if i == lines_count: prefix, suffix = PRE_DOTS, ""
 
         line = comment[prev_real_cut_point:real_cut_point]
-        lines.append(COMMENT_SEPARATOR + prefix + line.strip() + suffix)
+        lines.append(DELIMITER_LEFT + prefix + line.strip() + suffix)
 
         prev_real_cut_point = real_cut_point
     else:
         lines[i-1] = lines[i-1] + comment[prev_real_cut_point:]
     return lines
+
+def get_split_comment(comment, line_width, lines_count=0):
+    comment = comment.replace("\r", "").replace("\n","")
+
+    comment_size = len(comment)
+    if comment_size <= line_width:
+        return [comment]
+    
+    # if the comment is divided in lines make space for the dots
+    line_width = line_width - len(PRE_DOTS) - len(POST_DOTS)
+
+    # find first space in comment from WIDTH_COMMENT from end to start
+    lines = []
+    prev_cut_point = 0
+    remaining_comment = comment
+    while  len(remaining_comment) > 0:
+        if len(remaining_comment) <= line_width:
+            lines.append(remaining_comment.strip())
+            break
+
+        cur_line = remaining_comment[prev_cut_point:line_width]
+        cur_reversed_line = cur_line[::-1]
+        cut_point = len(cur_line) - cur_reversed_line.find(" ")
+
+        line = remaining_comment[prev_cut_point:cut_point]
+        lines.append(line.strip())
+        remaining_comment = remaining_comment[cut_point:]
+
+    while lines_count > len(lines):
+        lines.append(".")
+
+    return lines
+
+def add_split_comment_delimiters(lines):
+    out_lines = []
+    for i, line in enumerate(lines):
+        if i == 0 and not i == len(lines) - 1: prefix, suffix = "", POST_DOTS # first not last
+        if 0 < i < len(lines) - 1: prefix, suffix = PRE_DOTS, POST_DOTS # not first not last
+        if not i == 0 and i == len(lines) - 1: prefix, suffix = PRE_DOTS, "" # not first last
+        if i == 0 and i == len(lines) - 1: prefix, suffix = "", "" # first and last (just one line)
+
+        out_lines.append(prefix + line.strip() + suffix)
+
+    return out_lines
+
+def get_lines_from_lines_spaces(lines_spaces_count):
+    # multiple lines have </br> between instructions in the list that are discarded ...
+    # ... so normalize to take just the comment lines
+    lines_count = (lines_spaces_count // 2) + 1
+    return lines_count
+
+def get_comment_lines(comment, line_width, lines_count=0):
+    lines = get_split_comment(comment, line_width, lines_count)
+    comment_lines = add_split_comment_delimiters(lines)
+    return comment_lines
 
 def hex2dec(s):
     if not s:  # int() will not work on empty strings
