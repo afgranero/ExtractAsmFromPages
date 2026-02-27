@@ -39,7 +39,7 @@ def process(file):
     soup = BeautifulSoup(content, 'html.parser')
     # TODO process assembly-section-title class
     # TODO process debug-note class
-
+    # TODO Process comments with ↓,→,←, and → and other non ASCII chars that macroassembles does not accept
 
     # code_lines = soup.find_all('div', class_='assembly-row-combined')
     div_classes = 'div.assembly-row-combined, h2.assembly-section-title, p.debug-note'
@@ -104,10 +104,8 @@ def process_debug_note(code_line):
 
     print()
     print(box)
-    # print(box_space)
     for line in lines:
         print(f"{' '*spaces_count}{DELIMITER_LEFT}{line:<{text_width}}{DELIMITER_RIGHT}")
-    # print(box_space)
     print(box)
     print()
 
@@ -302,16 +300,20 @@ def case2col1(col_address, col_instruction, col_comment):
     # ... several addresses in one tag on column 1 separated by </br>
     # ... several instructions in one tag on column 2 separated by </br>
     # ... so the comment is applied to those group of addresses and instructions
-    col_address_count = len(col_address.contents)
+
     # comment here has one line only if it has more change to get as case4col2
     if len(col_comment.contents) > 1:
          error_and_exit(f"Comment lines expected: '1', found: '{len(col_comment.contents)}'.")
 
+    col_address_count = len(col_address.contents)
+    lines_count = get_lines_from_lines_spaces(col_address_count)
+    text_width = WIDTH_COMMENT - len(DELIMITER_LEFT)
     comment = col_comment.contents[0]
-    comments = get_normalized_comment(comment, col_address_count)
+    comments = get_comment_lines(comment, text_width, lines_count)
+
     lines = []
     index_line = 0
-    for index in range(0, col_address_count, 2):
+    for index in range(0, col_address_count):
         address = col_address.contents[index].get_text(strip=True)
         instruction = col_instruction.contents[index].get_text(strip=True)
 
@@ -330,11 +332,16 @@ def case2col1(col_address, col_instruction, col_comment):
             return
             error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{is_address_valid.prev_address_dec:X}H'.")
 
-        lines.append(format_address(address) + format_instruction(instruction) + comments[index_line])
+        lines.append(f"{format_address(address)}{format_instruction(instruction)}{DELIMITER_LEFT}{comments[index_line]}")
         index_line += 1
         
     for line in lines:
         print(line)
+
+    # there are still not printed comment lines
+    if len (comments) > len(lines):
+        for index in range(len(lines), len(comments)):
+            print(f"{' '*(WIDTH_ADDRESS + WIDTH_INSTRUCTION)}{DELIMITER_LEFT}{comments[index]}")
 
     return True
 
@@ -370,12 +377,19 @@ def case3col1(col_address, col_instruction, col_comment):
 
     lines = []
     instruction = col_instruction.contents[0].get_text(strip=True)
-    comment = get_normalized_comment(col_comment.contents[0], 1)[0]
-    lines.append(format_address(address1) + format_instruction(instruction) + comment)
-    lines.append(format_address(address3) + format_instruction(instruction))
+    comments = get_comment_lines(col_comment.contents[0], WIDTH_COMMENT - len(DELIMITER_LEFT))
+    comment = comments[0]
+
+    if len(comments) > 1 or len(col_comment.contents) > 1:
+        error_and_exit(f"Unexpected comment format: '{col_address.decode_contents()}'.")
+
+    lines.append(format_address(address1) + format_instruction(instruction) + f"{DELIMITER_LEFT}{comment}")
+    lines.append(format_address(address3) + format_instruction(instruction) + f"{DELIMITER_LEFT}{DELIMITER_SPLIT_COMMENT}")
 
     for line in lines:
         print(line)
+
+    print()
 
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count == 1 and is_quoted_string(col_instruction.contents[0].get_text()))
@@ -478,10 +492,13 @@ def case4col2(col_address, col_instruction, col_comment):
         if cur_content == content:
             comment += cur_content
         else:
-            # add spaces around if it is insiode a tag
+            # add spaces around if it is inside a tag
             comment += f" {cur_content} "
 
-    comments = get_normalized_comment(comment, col_instruction_count)
+    text_width = WIDTH_COMMENT - len(DELIMITER_LEFT)
+    lines_count = get_lines_from_lines_spaces(col_instruction_count)
+    # comments = get_normalized_comment(comment, col_instruction_count)
+    comments = get_comment_lines(comment, text_width, lines_count)
 
     lines = []
     address_dec, _ = hex2dec(col_address.contents[0][:-1])
@@ -498,13 +515,18 @@ def case4col2(col_address, col_instruction, col_comment):
         else:
             # ... next lines need to print the adress and, are data so a DEFB is needed
             instruction = f"DEFB {instruction}"
-            lines.append(format_address(f"{address_dec:04X}H") + format_instruction(instruction) + comments[index_line])
+            lines.append(f"{format_address(f'{address_dec:04X}H')}{format_instruction(instruction)}{DELIMITER_LEFT}{comments[index_line]}")
 
         address_dec+=1
         index_line +=1
 
     for line in lines:
         print(line)
+
+    # there are still not printed comment lines
+    if len (comments) > len(lines):
+        for index in range(len(lines), len(comments)):
+            print(f"{' '*(WIDTH_ADDRESS + WIDTH_INSTRUCTION)}{DELIMITER_LEFT}{comments[index]}")
     
     return True
 
@@ -567,7 +589,7 @@ def case7col2(col_address, col_instruction, col_comment):
     # just one comment as it is in the condition of the case
     col_instruction_count = len(col_instruction.contents)
     comment = col_comment.contents[0]
-    comments = get_normalized_comment(comment, col_instruction_count)
+    comments = get_comment_lines(comment, WIDTH_COMMENT - len(DELIMITER_LEFT))
 
     lines = []
     address_dec, _ = hex2dec(col_address.contents[0][:-1])
@@ -620,12 +642,12 @@ def case2col3(col_comment):
     #   </div>
 
     # normal case one comment
-    comments = get_normalized_comment(col_comment.contents[0], 1)
+    comments = get_comment_lines(col_comment.contents[0], WIDTH_COMMENT - len(DELIMITER_LEFT))
     for index, comment in enumerate(comments):
         if index == 0:
-            print(comment)
+            print(f"{DELIMITER_LEFT}{comment}")
         else:
-            print(f"{' '*(WIDTH_ADDRESS+WIDTH_INSTRUCTION)}{comment}")
+            print(f"{' '*(WIDTH_ADDRESS+WIDTH_INSTRUCTION)}{DELIMITER_LEFT}{comment}")
 
         if len(comments) != 1 and index == len(comments) - 1:
             print()
@@ -671,7 +693,7 @@ def case3col3(col_comment):
     # ... other case ...
     # ...    some foprmatting like kbd that spreads it in lines
 
-    # add lines wiithout spliting trivial tags just removint them
+    # add lines wiithout spliting trivial tags just removing them
     temp_lines = []
     for content in col_comment.contents:
         if type(content) is element.NavigableString:
@@ -687,6 +709,8 @@ def case3col3(col_comment):
                     temp_lines.append(comment_text)
 
         elif type(content) is element.Tag and content.name in ["span", "b", "a", "br", "kbd"]:
+            # trivial tags are not split
+            # TODO if this is the forst one this will break as temp_lines[-1] does not exist as temp_lines is an empty list
             temp_lines[-1] += f" {content.get_text()} "
         elif type(content) is element.Tag:
             error_and_exit(f"Unexpected tag: '{content.name}'")
@@ -694,43 +718,20 @@ def case3col3(col_comment):
             error_and_exit(f"Unexpected format: '{col_comment.decode_contents()}'")
 
     # split long lines
-    full_split_lines = []
+    split_lines = []
+    line_width =  WIDTH_COMMENT - len(DELIMITER_LEFT)
     for line in temp_lines:
-        partial_split_lines = get_normalized_comment(line, 1)
+        partial_split_lines = get_split_comment(line, line_width)
         for split_line in partial_split_lines:
-            # removes "; " at the start (subproduct of get_normalized_comment)
-            full_split_lines.append(split_line[2:])
+            split_lines.append(split_line)
+
+    lines = add_split_comment_delimiters(split_lines)
     
-    lines = []
-    for temp_line in full_split_lines:
-        lines_len = len(lines)
-
-        if lines_len == 0 and split_line.startswith("... "):
-            # it is the first line should not have "... " at the start: remove it
-            temp_line = temp_line[4:]
-
-        if lines_len != 0 and lines_len != len(full_split_lines) - 1 and not temp_line.endswith(" ..."):
-            # it is a line in the middle and it does not have " ..." at the end: add it
-            temp_line = f"{temp_line} ..."
-
-        if lines_len != 0 and not temp_line.startswith("... "):
-            # it is a line that is not the first and it does not have "... " at the start: add it"
-            temp_line = f"... {temp_line}"
-
-        if lines_len == len(full_split_lines) - 1 and temp_line.endswith(" ..."):
-            # it is the last line should not have " ..." at the end: remove it
-            temp_line = temp_line[:-4]
-
-        # re adds the "; "st the start
-        temp_line = f"; {temp_line}"
-        # finally adds the line
-        lines.append(temp_line)
-
     for index, line in enumerate(lines):
         if index == 0:
-            print(line)
+            print(f"{DELIMITER_LEFT}{line}")
         else:
-            print(f"{' '*(WIDTH_ADDRESS+WIDTH_INSTRUCTION)}{line}")
+            print(f"{' '*(WIDTH_ADDRESS+WIDTH_INSTRUCTION)}{DELIMITER_LEFT}{line}")
     
     print()
 
@@ -744,43 +745,16 @@ def format_address(address):
 def format_instruction(instruction):
     return f"{instruction:<{WIDTH_INSTRUCTION}}"
 
-def get_normalized_comment(comment, col_inner_count):
-    comment = comment.replace("\r", "").replace("\n","")
-    if col_inner_count == 1:
-        if len(comment) > WIDTH_COMMENT:
-            lines_count = int(len(comment)  / WIDTH_COMMENT) + 1
-        else:
-            return [DELIMITER_LEFT + comment]
-    else:
-        # multiple lines have </br> between instructions in the list that are discarded so normalize to take just the comment lines
-        lines_count = (col_inner_count // 2) + 1
-
-    # calculate where to divide line
-    cut_point = int(len(comment) / lines_count) - 1
-    # divide line adding ... on the end of the first and ... at the start of the others
-    lines = []
-    prev_real_cut_point = 0
-    for i in range(1, lines_count+1):
-        real_cut_point = comment.find(" ", i * cut_point)
-
-        if i == 1: prefix, suffix = "", POST_DOTS
-        if i > 1 and i < lines_count: prefix, suffix = PRE_DOTS, POST_DOTS
-        if i == lines_count: prefix, suffix = PRE_DOTS, ""
-
-        line = comment[prev_real_cut_point:real_cut_point]
-        lines.append(DELIMITER_LEFT + prefix + line.strip() + suffix)
-
-        prev_real_cut_point = real_cut_point
-    else:
-        lines[i-1] = lines[i-1] + comment[prev_real_cut_point:]
-    return lines
-
 def get_split_comment(comment, line_width, lines_count=0):
-    comment = comment.replace("\r", "").replace("\n","")
+    comment = comment.replace("\r", "").replace("\n","").replace("  "," ")
 
     comment_size = len(comment)
-    if comment_size <= line_width:
-        return [comment]
+    if comment_size <= line_width and not lines_count > 1:
+        lines = [comment]
+        # while lines_count > len(lines):
+        #     lines.append("")
+
+        return lines
     
     # if the comment is divided in lines make space for the dots
     line_width = line_width - len(PRE_DOTS) - len(POST_DOTS)
@@ -803,7 +777,7 @@ def get_split_comment(comment, line_width, lines_count=0):
         remaining_comment = remaining_comment[cut_point:]
 
     while lines_count > len(lines):
-        lines.append(".")
+        lines.append("")
 
     return lines
 
