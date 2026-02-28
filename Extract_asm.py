@@ -39,7 +39,7 @@ def process(file):
     soup = BeautifulSoup(content, 'html.parser')
     # TODO Process comments with ↓,→,←, and → and other non ASCII chars that macroassembles does not accept
 
-    div_classes = 'div.assembly-row-combined, h2.assembly-section-title, p.debug-note, p'
+    div_classes = 'div.assembly-row-combined, h2.assembly-section-title, p.debug-note, p:not([class]):not([style])'
     code_lines = soup.select(div_classes)
 
     if code_lines:
@@ -60,9 +60,8 @@ def process_classes(code_line):
         process_assembly_section_title(code_line)
     elif "debug-note" in classes:
         process_debug_note(code_line)
-    elif len(classes) == 0 and len(code_line.attrs) == 0:
-        # TODO process sole <p> tags that are the detail of the routines working
-        pass
+    elif len(code_line.attrs) == 0:
+        process_main_notes(code_line)
     else:
         error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
 
@@ -78,7 +77,11 @@ def process_assembly_section_title(code_line):
     code_line.contents[len(code_line.contents)-1].extract()
 
     text = code_line.get_text()
-    text = text.replace("\r", "").replace("\n","")
+    text = text.replace("\r", "").replace("\n","").replace("  ", " ")
+
+    # save to avoid reperition on process_main_notes
+    process_assembly_section_title.title = text
+
     lines = get_comment_lines(text, text_width)
     
     print()
@@ -87,6 +90,29 @@ def process_assembly_section_title(code_line):
     for line in lines:
         print(f"{DELIMITER_LEFT}{line:<{text_width}}{DELIMITER_RIGHT}")
     print(box_space)
+    print(box)
+    print()
+
+def process_main_notes(code_line):
+    dashes_count = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - 2*len(DELIMITER_COMMENT)
+    box = f"{DELIMITER_COMMENT}{'-'*(dashes_count)}{DELIMITER_COMMENT}"
+    box_space = f"{DELIMITER_COMMENT}{' '*(dashes_count)}{DELIMITER_COMMENT}"
+
+    delimiters_width = len(DELIMITER_LEFT) + len(DELIMITER_RIGHT)
+    text_width = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - delimiters_width
+
+    text = code_line.get_text()
+    text = text.replace("\r", "").replace("\n","").replace("  ", " ")
+
+    # avoid repeat title in main_note evenn if they differ just by "" around a char
+    if process_assembly_section_title.title.replace('"','') == text.replace('"',''):
+        return
+    
+    lines = get_comment_lines(text, text_width)
+    
+    print(box)
+    for line in lines:
+        print(f"{DELIMITER_LEFT}{line:<{text_width}}{DELIMITER_RIGHT}")
     print(box)
     print()
 
