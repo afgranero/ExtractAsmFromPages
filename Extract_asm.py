@@ -88,7 +88,6 @@ def process_assembly_section_title(code_line):
     print()
 
 def process_debug_note(code_line):
-    # TODO this is a template put the text in the middle
     dashes_count = WIDTH_INSTRUCTION + WIDTH_COMMENT - 2*len(DELIMITER_COMMENT)
     spaces_count = WIDTH_ADDRESS
     spaces = f"{' '*spaces_count}"
@@ -111,8 +110,6 @@ def process_debug_note(code_line):
 
 def process_assembly_row_combined(code_line):
     # TODO fix wrong parts as wrongs addresses or repeated parts using a skip list depending on the file
-    # TODO process comments as box titles
-    # TODO process comments yellow boxes
 
     # easier to have code_line for debugging and error messages
 
@@ -514,7 +511,7 @@ def case4col2(col_address, col_instruction, col_comment):
             lines.append(format_instruction(instruction) + comments[index_line])
         else:
             # ... next lines need to print the adress and, are data so a DEFB is needed
-            instruction = f"DEFB {instruction}"
+            # instruction = f"DEFB {instruction}"
             lines.append(f"{format_address(f'{address_dec:04X}H')}{format_instruction(instruction)}{DELIMITER_LEFT}{comments[index_line]}")
 
         address_dec+=1
@@ -709,8 +706,10 @@ def case3col3(col_comment):
                     temp_lines.append(comment_text)
 
         elif type(content) is element.Tag and content.name in ["span", "b", "a", "br", "kbd"]:
+            if len(temp_lines) == 0:
+                error_and_exit(f"Unexpected format: '{col_comment.decode_contents()}'")
+
             # trivial tags are not split
-            # TODO if this is the forst one this will break as temp_lines[-1] does not exist as temp_lines is an empty list
             temp_lines[-1] += f" {content.get_text()} "
         elif type(content) is element.Tag:
             error_and_exit(f"Unexpected tag: '{content.name}'")
@@ -735,6 +734,18 @@ def case3col3(col_comment):
     
     print()
 
+@call_count
+@with_condition(lambda instruction: is_hex(instruction[:-1]) and instruction[-1] == "H" and len(instruction[:-1]) == 2)
+def fix_missing_defb(instruction):
+    instruction = f"DEFB {instruction}"
+    return instruction
+
+@call_count
+@with_condition(lambda instruction: instruction[0:4] == "DEFB" and is_hex(instruction[5:-1]) and instruction[-1] == "H" and len(instruction[5:-1]) > 2)
+def fix_defb_instead_of_defw(instruction):
+    instruction = f"DEFW {instruction[5:-1]}H"
+    return instruction
+
 def error_and_exit(message):
         print(message, file=sys.stderr)
         sys.exit(1)
@@ -743,7 +754,15 @@ def format_address(address):
     return f"{address:<{WIDTH_ADDRESS}}"
 
 def format_instruction(instruction):
+    instruction = fix_instruction(instruction)
     return f"{instruction:<{WIDTH_INSTRUCTION}}"
+
+def fix_instruction(instruction):
+    if fix_missing_defb.condition(instruction):
+        instruction = fix_missing_defb(instruction)
+    elif fix_defb_instead_of_defw.condition(instruction):
+        instruction = fix_defb_instead_of_defw(instruction)
+    return instruction
 
 def get_split_comment(comment, line_width, lines_count=0):
     comment = comment.replace("\r", "").replace("\n","").replace("  "," ")
