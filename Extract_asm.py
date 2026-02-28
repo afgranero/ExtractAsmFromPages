@@ -37,12 +37,9 @@ def process(file):
         error_and_exit(f"Error reading file '{file}': {e}")
 
     soup = BeautifulSoup(content, 'html.parser')
-    # TODO process assembly-section-title class
-    # TODO process debug-note class
     # TODO Process comments with ↓,→,←, and → and other non ASCII chars that macroassembles does not accept
 
-    # code_lines = soup.find_all('div', class_='assembly-row-combined')
-    div_classes = 'div.assembly-row-combined, h2.assembly-section-title, p.debug-note'
+    div_classes = 'div.assembly-row-combined, h2.assembly-section-title, p.debug-note, p'
     code_lines = soup.select(div_classes)
 
     if code_lines:
@@ -52,7 +49,10 @@ def process(file):
         pass
 
 def process_classes(code_line):
-    classes = code_line.attrs["class"]
+    if "class" in code_line.attrs:
+        classes = code_line.attrs["class"]
+    else:
+        classes = []
 
     if "assembly-row-combined" in classes:
         process_assembly_row_combined(code_line)
@@ -60,8 +60,11 @@ def process_classes(code_line):
         process_assembly_section_title(code_line)
     elif "debug-note" in classes:
         process_debug_note(code_line)
-    else:
+    elif len(classes) == 0 and len(code_line.attrs) == 0:
+        # TODO process sole <p> tags that are the detail of the routines working
         pass
+    else:
+        error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
 
 def process_assembly_section_title(code_line):
     dashes_count = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - 2*len(DELIMITER_COMMENT)
