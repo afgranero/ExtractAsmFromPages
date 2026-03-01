@@ -1,0 +1,22 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Extrack ASM from HTML",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "Extract_asm.py",
+            "args": ["./asm_web_pages/TRS-80 - Model I - Level 1/TRS-80 - Level 1 ROM Disassembled.html"]
+            // "args": ["./asm_web_pages/TRS-80 - Model I - Level 2/Model I ROM Explained - Part 1.html"]
+            // "args": ["./asm_web_pages/TRS-80 - Model I - Level 2/Model I ROM Explained - Part 2.html"]
+            // "args": ["./asm_web_pages/TRS-80 - Model I - Level 2/Model I ROM Explained - Part 3.html"]
+            // "args": ["./asm_web_pages/TRS-80 Model III/Model III ROM Explained - Part 1.html"]
+            // "args": ["./asm_web_pages/TRS-80 Model III/Model III ROM Explained - Part 2.html"]
+            // "args": ["./asm_web_pages/TRS-80 Model III/Model III ROM Explained - Part 3.html"]
+            // "args": ["./asm_web_pages/TRS-80 Model III/Model III ROM Explained - Part 4.html"]
+        }
+    ]
+}

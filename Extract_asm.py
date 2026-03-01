@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import operator
 import functools
+import hashlib
 
 from bs4 import BeautifulSoup
 from bs4 import element
@@ -27,7 +28,7 @@ COL_INDEX_COMMENT= 2
 # ... it is notintended to be a generic use one ...
 # ... the ifs maze reflect a lot of inconsistencies, exceptions, and errors on the HTML page it parses
 
-def process(file):
+def process(file, hash):
     try:
         with open(file, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -540,7 +541,6 @@ def case4col2(col_address, col_instruction, col_comment):
             lines.append(format_instruction(instruction) + comments[index_line])
         else:
             # ... next lines need to print the adress and, are data so a DEFB is needed
-            # instruction = f"DEFB {instruction}"
             lines.append(f"{format_address(f'{address_dec:04X}H')}{format_instruction(instruction)}{DELIMITER_LEFT}{comments[index_line]}")
 
         address_dec+=1
@@ -886,6 +886,14 @@ def is_quoted_string(s):
 def is_quoted_string_with_cr(s):
     return s.replace(" ", "")[-5:] == '"+0DH'
 
+def compute_file_hash(file_path, algorithm='sha256'):
+    hash_func = hashlib.new(algorithm)
+    # Read in 64KB chunks to handle large files
+    with open(file_path, 'rb') as file:
+        while chunk := file.read(65536):
+            hash_func.update(chunk)
+    return hash_func.hexdigest()
+
 def main():
     path = "."
     nparams = len(sys.argv)
@@ -908,8 +916,8 @@ def main():
         files.append(path)
 
     for file in files:
-        process(file)
-
+        hash = compute_file_hash(file)
+        process(file, hash)
 
 if __name__ == "__main__":
     main()
