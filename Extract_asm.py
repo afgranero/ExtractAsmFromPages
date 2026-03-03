@@ -8,6 +8,8 @@ import hashlib
 from bs4 import BeautifulSoup
 from bs4 import element
 
+import fix_addresses as fa
+
 
 WIDTH_ADDRESS = 8
 WIDTH_INSTRUCTION = 24
@@ -45,28 +47,33 @@ def process(file, hash):
 
     if code_lines:
         for code_line in code_lines:
-            process_classes(code_line)
+            if hasattr(fa.fix_address, "next"):
+                new_address, extra = fa.fix_address.next
+                print(f"{format_address(new_address)}{format_instruction(extra)}")
+                delattr(fa.fix_address, "next")
+
+            process_classes(code_line, hash)
     else:
         pass
 
-def process_classes(code_line):
+def process_classes(code_line, hash):
     if "class" in code_line.attrs:
         classes = code_line.attrs["class"]
     else:
         classes = []
 
     if "assembly-row-combined" in classes:
-        process_assembly_row_combined(code_line)
+        process_assembly_row_combined(code_line, hash)
     elif "assembly-section-title" in classes:
-        process_assembly_section_title(code_line)
+        process_assembly_section_title(code_line, hash)
     elif "debug-note" in classes:
-        process_debug_note(code_line)
+        process_debug_note(code_line, hash)
     elif len(code_line.attrs) == 0:
-        process_main_notes(code_line)
+        process_main_notes(code_line, hash)
     else:
         error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
 
-def process_assembly_section_title(code_line):
+def process_assembly_section_title(code_line, hash):
     dashes_count = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - 2*len(DELIMITER_COMMENT)
     box = f"{DELIMITER_COMMENT}{'-'*(dashes_count)}{DELIMITER_COMMENT}"
     box_space = f"{DELIMITER_COMMENT}{' '*(dashes_count)}{DELIMITER_COMMENT}"
@@ -94,7 +101,7 @@ def process_assembly_section_title(code_line):
     print(box)
     print()
 
-def process_main_notes(code_line):
+def process_main_notes(code_line, hash):
     dashes_count = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - 2*len(DELIMITER_COMMENT)
     box = f"{DELIMITER_COMMENT}{'-'*(dashes_count)}{DELIMITER_COMMENT}"
     box_space = f"{DELIMITER_COMMENT}{' '*(dashes_count)}{DELIMITER_COMMENT}"
@@ -117,7 +124,7 @@ def process_main_notes(code_line):
     print(box)
     print()
 
-def process_debug_note(code_line):
+def process_debug_note(code_line, hash):
     dashes_count = WIDTH_INSTRUCTION + WIDTH_COMMENT - 2*len(DELIMITER_COMMENT)
     spaces_count = WIDTH_ADDRESS
     spaces = f"{' '*spaces_count}"
@@ -138,7 +145,7 @@ def process_debug_note(code_line):
     print(box)
     print()
 
-def process_assembly_row_combined(code_line):
+def process_assembly_row_combined(code_line, hash):
     # TODO fix wrong parts as wrongs addresses or repeated parts using a skip list depending on the file
 
     # easier to have code_line for debugging and error messages
@@ -166,9 +173,10 @@ def process_assembly_row_combined(code_line):
 
     # column 0 address
     if case1col1.condition(col_address_count):
-        case1col1(col_address)
+        end = case1col1(col_address, hash)
+        if end: return
     elif case2col1.condition(col_address_count, col_instruction_count):
-        end = case2col1(col_address, col_instruction, col_comment)
+        end = case2col1(col_address, col_instruction, col_comment, hash)
         if end: return
     elif case3col1.condition(col_address_count, col_instruction_count):
         case3col1(col_address, col_instruction, col_comment)
@@ -248,7 +256,7 @@ def case1general(cols):
 
 @call_count
 @with_condition(lambda col_address_count: col_address_count == 1)
-def case1col1(col_address):
+def case1col1(col_address, hash):
     # examples:
     # 
     #   <div class="assembly-row-combined">
@@ -283,6 +291,14 @@ def case1col1(col_address):
     
     # normal case: one address
     address = col_address.contents[0]
+    action, new_address, extra = fa.fix_address(address, hash)
+    if action == fa.SKIP:
+        return True
+    elif action == fa.SUBSTITUTE:
+        address = new_address
+    elif action == fa.INSERT_NEXT:
+        fa.fix_address.next = (new_address, extra)
+
     if not is_address_valid(address):
         # TODO if address is 015EH set flag to skip next repeat with a return until it reaches 015EH when the flag is reset ...
         # TODO ... there are several errors on the page at 
@@ -292,10 +308,11 @@ def case1col1(col_address):
         error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{is_address_valid.prev_address_dec:X}H'.")
 
     print(format_address(address), end="")
+    return False
 
 @call_count
 @with_condition(lambda col_address_count, col_instruction_count: col_address_count in [3, 5] and col_address_count == col_instruction_count)
-def case2col1(col_address, col_instruction, col_comment):
+def case2col1(col_address, col_instruction, col_comment, hash):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -342,6 +359,14 @@ def case2col1(col_address, col_instruction, col_comment):
     index_line = 0
     for index in range(0, col_address_count):
         address = col_address.contents[index].get_text(strip=True)
+        action, new_address, extra = fa.fix_address(address, hash)
+        if action == fa.SKIP:
+            return True
+        elif action == fa.SUBSTITUTE:
+            address = new_address
+        elif action == fa.INSERT_NEXT:
+            fa.fix_address.next = (new_address, extra)
+        
         instruction = col_instruction.contents[index].get_text(strip=True)
 
         if address == "" and instruction == "":

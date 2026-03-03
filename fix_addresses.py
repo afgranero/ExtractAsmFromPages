@@ -1,21 +1,25 @@
-skip_list = {
+SKIP = 'skip'
+SUBSTITUTE = 'substitute'
+INSERT_NEXT = 'insert next'
+
+FIX_LIST = {
     # TRS-80 - Level 1 ROM Disassembled.html/TRS-80 - Level 1 ROM Disassembled.html
     '33e2ac3b3c6417fd9307feb68f4c7e2c965ce34b54b46fc8b274b39282eef019':
         {
-            '0155H': (2, 'skip',        '015EH'),           # entire session was repeated including title
-            '0249H': (2, 'substitute',  '0254H'),           # adddress is wrong repeating a previous one
-            '0251H': (1, 'substitute',  '0252H'),           # address wrong
-            '0287H': (1, 'substitute',  '02B7H'),           # address wrong
-            '0329H': (1, 'insert next', '032AH|DEFW 8452'), # a data word was ommited
-            '04ECH': (2, 'substitute',  '04EDH'),           # address repeated instead of incremented
-            '0501H': (2, 'substitute',  '0502H'),           # address repeated instead of incremented
-            '06AAH': (2, 'substitute',  '06ACH'),           # address repeated instead of incremented
-            '0842H': (2, 'skip',        '0858H'),           # an entire session was repeated includinG title
-            '08BAH': (1, 'substitute',  '08B3H'),           # address wrong
-            '08D4H': (2, 'substitute',  '08D5H'),           # address repeated instead of incremented
-            '0A89H': (2, 'substitute',  '0A8AH'),           # address repeated instead of incremented
-            '0AB1H': (2, 'substitute',  '0AB2H'),           # address repeated instead of incremented
-            '0E4AH': (2, 'substitute',  '0E4BH'),           # address repeated instead of incremented
+            '0155H': (2, SKIP,          '015EH', ''),           # entire session was repeated including title
+            '0249H': (2, SUBSTITUTE,    '0254H', ''),           # adddress is wrong repeating a previous one
+            '0251H': (1, SUBSTITUTE,    '0252H', ''),           # address wrong
+            '0287H': (2, SUBSTITUTE,    '02B7H', ''),           # address wrong
+            '0329H': (1, INSERT_NEXT,   '032BH', 'DEFW 8452H'), # a data word was ommited (maybe because is irrelevant? 
+            '04ECH': (2, SUBSTITUTE,    '04EDH', ''),           # address repeated instead of incremented
+            '0501H': (2, SUBSTITUTE,    '0502H', ''),           # address repeated instead of incremented
+            '06AAH': (2, SUBSTITUTE,    '06ACH', ''),           # address repeated instead of incremented
+            '0842H': (2, SKIP,          '0858H', ''),           # an entire session was repeated includinG title
+            '08BAH': (1, SUBSTITUTE,    '08B3H', ''),           # address wrong
+            '08D4H': (2, SUBSTITUTE,    '08D5H', ''),           # address repeated instead of incremented
+            '0A89H': (2, SUBSTITUTE,    '0A8AH', ''),           # address repeated instead of incremented
+            '0AB1H': (2, SUBSTITUTE,    '0AB2H', ''),           # address repeated instead of incremented
+            '0E4AH': (2, SUBSTITUTE,    '0E4BH', ''),           # address repeated instead of incremented
         },
     # TRS-80 - Model I - Level 2/Model I ROM Explained - Part 1.html
     '76337e787a728184b3f5a8af89bedcb8ade1ad79937809d05302f4951f007676': 
@@ -39,3 +43,51 @@ skip_list = {
     'dbabc65bdfb220c4d44a6f6ca8e9bad4ba8416c6885990e275908a7cc935111e':
         {},
     }
+
+def fix_address(address, hash):
+    # this is not one of the expected files: do nothing
+    if hash not in FIX_LIST:
+        return None, address, None
+
+    fix_elements = FIX_LIST[hash]
+
+    # initialize the attribute on the first time
+    if not hasattr(fix_address, "count_addresseses"):
+        fix_address.count_addresseses = {}
+
+    if address not in fix_elements:
+        # even if it os not an address of interest the function can still be on SKIP state
+        if hasattr(fix_address, 'address_stop_skipping'):
+            if fix_address.address_stop_skipping == address:
+                # skiping part ended return to normal
+                delattr(fix_address, 'address_stop_skipping')
+                return None, address, None
+            else:
+                # on SKIP state: skip
+                return SKIP, address, None
+        else:
+            return None, address, None
+
+    # can only reach this point if it is an address of interest
+
+    # count ocurrencies of the address
+    if address not in fix_address.count_addresseses:
+        fix_address.count_addresseses[address] = 1
+    else:
+        fix_address.count_addresseses[address] += 1
+
+    count, action, new_address, extra = fix_elements[address]
+    if count == fix_address.count_addresseses[address]:
+        # the address has the necessary count
+
+        # TODO here we can use a switch
+        if action == SKIP:
+            fix_address.address_stop_skipping = new_address
+            return SKIP, None, None
+        elif action == SUBSTITUTE:
+            return SUBSTITUTE, new_address, None
+        elif action == INSERT_NEXT:
+            return INSERT_NEXT, new_address, extra
+    else:
+        return None, address, None
+
