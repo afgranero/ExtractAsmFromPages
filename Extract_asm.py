@@ -27,7 +27,7 @@ COL_INDEX_INSTRUCTION = 1
 COL_INDEX_COMMENT= 2
 
 # this program is for extracting ASM code from a se of specific files ...
-# ... it is notintended to be a generic use one ...
+# ... it is not intended to be a generic use one ...
 # ... the ifs maze reflect a lot of inconsistencies, exceptions, and errors on the HTML page it parses
 
 def process(file, hash):
@@ -41,6 +41,8 @@ def process(file, hash):
 
     soup = BeautifulSoup(content, 'html.parser')
     # TODO Process comments with ↓,→,←, and → and other non ASCII chars that macroassembles does not accept
+    # TODO make the address fix to be called in all places whee addresses are processed to make it more generic
+    # TODO mek address fix to be used on totles and debug notes where there is not address but they still can be in teh middle of a skipped section
 
     div_classes = 'div.assembly-row-combined, h2.assembly-section-title, p.debug-note, p:not([class]):not([style])'
     code_lines = soup.select(div_classes)
@@ -146,8 +148,6 @@ def process_debug_note(code_line, hash):
     print()
 
 def process_assembly_row_combined(code_line, hash):
-    # TODO fix wrong parts as wrongs addresses or repeated parts using a skip list depending on the file
-
     # easier to have code_line for debugging and error messages
 
     # it is needed to know the number of elements prior so I avoid lazy evaluation ...
@@ -300,11 +300,6 @@ def case1col1(col_address, hash):
         fa.fix_address.next = (new_address, extra)
 
     if not is_address_valid(address):
-        # TODO if address is 015EH set flag to skip next repeat with a return until it reaches 015EH when the flag is reset ...
-        # TODO ... there are several errors on the page at 
-        # TODO ... 0155H, 0249H, 0287H, 0842H, 08B6H
-        # TODO return is here so we can treat all cases and test remove when ready
-        return
         error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{is_address_valid.prev_address_dec:X}H'.")
 
     print(format_address(address), end="")
@@ -378,10 +373,6 @@ def case2col1(col_address, col_instruction, col_comment, hash):
             error_and_exit(f"Inconsistent addresses: '{col_address.contents[index]}' and instruction: '{col_instruction.contents[index_line]:}'.")
 
         if not is_address_valid(address):
-            # TODO ... there are several errors on the page at 
-            # TODO ... 04ECH, 0501H, 066AAH, 08D4H, 0A89H, 0AB1H, 0E4AH
-            # TODO return is here so we can treat all cases and test remove when ready
-            return
             error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{is_address_valid.prev_address_dec:X}H'.")
 
         lines.append(f"{format_address(address)}{format_instruction(instruction)}{DELIMITER_LEFT}{comments[index_line]}")

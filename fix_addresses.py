@@ -63,7 +63,7 @@ def fix_address(address, hash):
                 delattr(fix_address, 'address_stop_skipping')
                 return None, address, None
             else:
-                # on SKIP state: skip
+                # it is on SKIP state: skip
                 return SKIP, address, None
         else:
             return None, address, None
