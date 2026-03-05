@@ -1,31 +1,15 @@
-import functools
 import operator
 
 from bs4 import element
 
 import column_processing as cp
 from constants import *
+from decorators import *
 import fix_addresses as fa
 import format_output as fo
 import helpers as h
 import string_checks as sc
 
-
-def with_condition(condition):
-    def decorator(func):
-        func.condition = condition
-        return func
-    return decorator
-
-
-def call_count(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        wrapper.calls_count += 1
-        return func(*args, **kwargs)
-
-    wrapper.calls_count = 0
-    return wrapper
 
 @call_count
 @with_condition(lambda cols_count: cols_count == 4)
@@ -590,17 +574,5 @@ def case3col3(col_comment):
     print()
 
 
-@call_count
-@with_condition(lambda instruction: sc.is_hex(instruction[:-1]) and instruction[-1] == "H" and len(instruction[:-1]) == 2)
-def fix_missing_defb(instruction):
-    instruction = f"DEFB {instruction}"
-    return instruction
-
-
-@call_count
-@with_condition(lambda instruction: instruction[0:4] == "DEFB" and sc.is_hex(instruction[5:-1]) and instruction[-1] == "H" and len(instruction[5:-1]) > 2)
-def fix_defb_instead_of_defw(instruction):
-    instruction = f"DEFW {instruction[5:-1]}H"
-    return instruction
 
 

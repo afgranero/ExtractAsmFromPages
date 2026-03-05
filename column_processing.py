@@ -1,13 +1,4 @@
 from constants import *
-import page_cases as pc
-
-
-def fix_instruction(instruction):
-    if pc.fix_missing_defb.condition(instruction):
-        instruction = pc.fix_missing_defb(instruction)
-    elif pc.fix_defb_instead_of_defw.condition(instruction):
-        instruction = pc.fix_defb_instead_of_defw(instruction)
-    return instruction
 
 
 def get_split_comment(comment, line_width, lines_count=0):

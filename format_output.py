@@ -1,6 +1,6 @@
 
 from constants import *
-import column_processing as cp
+import fix_instructions as fi
 
 
 def format_address(address):
@@ -8,5 +8,5 @@ def format_address(address):
 
 
 def format_instruction(instruction):
-    instruction = cp.fix_instruction(instruction)
+    instruction = fi.fix_instruction(instruction)
     return f"{instruction:<{WIDTH_INSTRUCTION}}"
