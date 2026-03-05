@@ -10,11 +10,11 @@ FIX_LIST = {
             '0249H': (2, SUBSTITUTE,    '0254H', ''),           # adddress is wrong repeating a previous one
             '0251H': (1, SUBSTITUTE,    '0252H', ''),           # address wrong
             '0287H': (2, SUBSTITUTE,    '02B7H', ''),           # address wrong
-            '0329H': (1, INSERT_NEXT,   '032BH', 'DEFW 8452H'), # a data word was ommited (maybe because is irrelevant? 
+            '0329H': (1, INSERT_NEXT,   '032BH', 'DEFW 8452H'), # data word was ommited
             '04ECH': (2, SUBSTITUTE,    '04EDH', ''),           # address repeated instead of incremented
             '0501H': (2, SUBSTITUTE,    '0502H', ''),           # address repeated instead of incremented
             '06AAH': (2, SUBSTITUTE,    '06ACH', ''),           # address repeated instead of incremented
-            '0842H': (2, SKIP,          '0858H', ''),           # an entire session was repeated includinG title
+            '0842H': (1, SKIP,          '0842H', ''),           # entire session was repeated including title
             '08BAH': (1, SUBSTITUTE,    '08B3H', ''),           # address wrong
             '08D4H': (2, SUBSTITUTE,    '08D5H', ''),           # address repeated instead of incremented
             '0A89H': (2, SUBSTITUTE,    '0A8AH', ''),           # address repeated instead of incremented
@@ -44,45 +44,47 @@ FIX_LIST = {
         {},
     }
 
-def fix_address(address, hash):
+def fix_address(address, hash, type="code"):
     # this is not one of the expected files: do nothing
     if hash not in FIX_LIST:
         return None, address, None
 
     fix_elements = FIX_LIST[hash]
 
-    # initialize the attribute on the first time
-    if not hasattr(fix_address, "count_addresseses"):
-        fix_address.count_addresseses = {}
+    # initialize the attributes on the first time
+    if type not in fix_address.count_addresseses:
+        fix_address.count_addresseses[type] = {}
+
+    if type not in fix_address.address_stop_skipping:
+        fix_address.address_stop_skipping[type] = {}
+        
+    # even if it os not an address of interest the function can still be on SKIP state
+    if fix_address.address_stop_skipping[type] != {}:
+        if fix_address.address_stop_skipping[type] == address:
+            # skiping part ended return to normal
+            fix_address.address_stop_skipping[type] = {}
+            return None, address, None
+        else:
+            # it is on SKIP state: skip
+            return SKIP, address, None
 
     if address not in fix_elements:
-        # even if it os not an address of interest the function can still be on SKIP state
-        if hasattr(fix_address, 'address_stop_skipping'):
-            if fix_address.address_stop_skipping == address:
-                # skiping part ended return to normal
-                delattr(fix_address, 'address_stop_skipping')
-                return None, address, None
-            else:
-                # it is on SKIP state: skip
-                return SKIP, address, None
-        else:
-            return None, address, None
+        return None, address, None
 
     # can only reach this point if it is an address of interest
 
     # count ocurrencies of the address
-    if address not in fix_address.count_addresseses:
-        fix_address.count_addresseses[address] = 1
+    if address not in fix_address.count_addresseses[type]:
+        fix_address.count_addresseses[type][address] = 1
     else:
-        fix_address.count_addresseses[address] += 1
+        fix_address.count_addresseses[type][address] += 1
 
     count, action, new_address, extra = fix_elements[address]
-    if count == fix_address.count_addresseses[address]:
+    if count == fix_address.count_addresseses[type][address]:
         # the address has the necessary count
-
         # TODO here we can use a switch
         if action == SKIP:
-            fix_address.address_stop_skipping = new_address
+            fix_address.address_stop_skipping[type] = new_address
             return SKIP, None, None
         elif action == SUBSTITUTE:
             return SUBSTITUTE, new_address, None
@@ -91,3 +93,5 @@ def fix_address(address, hash):
     else:
         return None, address, None
 
+fix_address.count_addresseses = {}
+fix_address.address_stop_skipping = {}

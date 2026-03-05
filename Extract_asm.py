@@ -40,9 +40,7 @@ def process(file, hash):
         error_and_exit(f"Error reading file '{file}': {e}")
 
     soup = BeautifulSoup(content, 'html.parser')
-    # TODO Process comments with ↓,→,←, and → and other non ASCII chars that macroassembles does not accept
-    # TODO make the address fix to be called in all places whee addresses are processed to make it more generic
-    # TODO mek address fix to be used on totles and debug notes where there is not address but they still can be in teh middle of a skipped section
+    # TODO Process comments with ↓,→,←, and → and other non ASCII chars that macroassemblers does not accept
 
     div_classes = 'div.assembly-row-combined, h2.assembly-section-title, p.debug-note, p:not([class]):not([style])'
     code_lines = soup.select(div_classes)
@@ -76,21 +74,26 @@ def process_classes(code_line, hash):
         error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
 
 def process_assembly_section_title(code_line, hash):
-    dashes_count = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - 2*len(DELIMITER_COMMENT)
-    box = f"{DELIMITER_COMMENT}{'-'*(dashes_count)}{DELIMITER_COMMENT}"
-    box_space = f"{DELIMITER_COMMENT}{' '*(dashes_count)}{DELIMITER_COMMENT}"
-
-    delimiters_width = len(DELIMITER_LEFT) + len(DELIMITER_RIGHT)
-    text_width = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - delimiters_width
-
     # remove symbol of clipboard at the end of title
     code_line.contents[len(code_line.contents)-1].extract()
 
     text = code_line.get_text()
     text = text.replace("\r", "").replace("\n","").replace("  ", " ")
 
-    # save to avoid reperition on process_main_notes
+    # save to avoid repetition on process_main_notes
     process_assembly_section_title.title = text
+
+    address_candidate = text[0:5]
+    action, _, _ = fa.fix_address(address_candidate, hash, "title")
+    if action == fa.SKIP:
+        return True
+
+    dashes_count = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - 2*len(DELIMITER_COMMENT)
+    box = f"{DELIMITER_COMMENT}{'-'*(dashes_count)}{DELIMITER_COMMENT}"
+    box_space = f"{DELIMITER_COMMENT}{' '*(dashes_count)}{DELIMITER_COMMENT}"
+
+    delimiters_width = len(DELIMITER_LEFT) + len(DELIMITER_RIGHT)
+    text_width = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - delimiters_width
 
     lines = get_comment_lines(text, text_width)
     
@@ -104,19 +107,23 @@ def process_assembly_section_title(code_line, hash):
     print()
 
 def process_main_notes(code_line, hash):
+    text = code_line.get_text()
+    text = text.replace("\r", "").replace("\n","").replace("  ", " ")
+
+    action, _, _ = fa.fix_address("", hash, "title")
+    if action == fa.SKIP:
+        return True
+
+    # avoid repeat title in main_note even if they differ just by "" around a char
+    if process_assembly_section_title.title.replace('"','') == text.replace('"',''):
+        return
+
     dashes_count = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - 2*len(DELIMITER_COMMENT)
     box = f"{DELIMITER_COMMENT}{'-'*(dashes_count)}{DELIMITER_COMMENT}"
     box_space = f"{DELIMITER_COMMENT}{' '*(dashes_count)}{DELIMITER_COMMENT}"
 
     delimiters_width = len(DELIMITER_LEFT) + len(DELIMITER_RIGHT)
     text_width = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - delimiters_width
-
-    text = code_line.get_text()
-    text = text.replace("\r", "").replace("\n","").replace("  ", " ")
-
-    # avoid repeat title in main_note evenn if they differ just by "" around a char
-    if process_assembly_section_title.title.replace('"','') == text.replace('"',''):
-        return
     
     lines = get_comment_lines(text, text_width)
     
@@ -132,12 +139,18 @@ def process_debug_note(code_line, hash):
     spaces = f"{' '*spaces_count}"
     box = f"{spaces}{DELIMITER_COMMENT}{'-'*(dashes_count)}{DELIMITER_COMMENT}"
     box_space = f"{spaces}{DELIMITER_COMMENT}{' '*(dashes_count)}{DELIMITER_COMMENT}"
+
     delimiters_width = len(DELIMITER_LEFT) + len(DELIMITER_RIGHT)
     text_width = WIDTH_INSTRUCTION + WIDTH_COMMENT - delimiters_width
 
     text = f"{code_line.get_text():<{text_width}}"
     text = code_line.get_text()
     text = text.replace("\r", "").replace("\n","")
+
+    action, new_address, extra = fa.fix_address("", hash, "title")
+    if action == fa.SKIP:
+        return True
+
     lines = get_comment_lines(text, text_width)
 
     print()
@@ -291,6 +304,7 @@ def case1col1(col_address, hash):
     
     # normal case: one address
     address = col_address.contents[0]
+
     action, new_address, extra = fa.fix_address(address, hash)
     if action == fa.SKIP:
         return True
