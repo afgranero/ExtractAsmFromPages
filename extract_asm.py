@@ -1,3 +1,4 @@
+import argparse
 import os
 from pathlib import Path
 import sys
@@ -16,7 +17,7 @@ import page_cases as pc
 # ... it is not intended to be a generic use one ...
 # ... the ifs maze reflect a lot of inconsistencies, exceptions, and errors on the HTML page it parses
 
-def process(file, hash):
+def process(file, hash, disassembler_mode):
     try:
         with open(file, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -104,6 +105,7 @@ def process_main_notes(code_line, hash):
         return True
 
     # avoid repeat title in main_note even if they differ just by "" around a char
+    # TODO in some files the note can appear before a title and  process_assembly_section_title.title can not exist
     if process_assembly_section_title.title.replace('"','') == text.replace('"',''):
         return
 
@@ -220,15 +222,16 @@ def process_assembly_row_combined(code_line, hash):
     
 
 def main():
-    path = "."
-    nparams = len(sys.argv)
-    if nparams > 1:
-        path = sys.argv[1]
-    if nparams > 2:
-        print("Too many parameters, only the first one will be used.")
+    parser = argparse.ArgumentParser(description="Extract assembler from specific HTML pages.")
+    parser.add_argument("path", nargs='?', default=".", help="Path of file or files.")
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument("-d", "--disassembler", dest="disassembler_mode", action="store_true",  help="Outputs a disassembler format.")
+    group.add_argument("-c", "--assembler",    dest="disassembler_mode", action="store_false", help="Outputs a compilable assembler format.")
+    parser.set_defaults(disassembler_mode=True)
+    args = parser.parse_args()
 
     script_dir = Path(__file__).resolve().parent
-    path = os.path.join(script_dir, path)
+    path = os.path.join(script_dir, args.path)
 
     files = []
     if os.path.isdir(path):
@@ -242,7 +245,7 @@ def main():
 
     for file in files:
         hash = h.compute_file_hash(file)
-        process(file, hash)
+        process(file, hash, args.disassembler_mode)
 
 
 if __name__ == "__main__":

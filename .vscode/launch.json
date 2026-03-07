@@ -12,6 +12,13 @@
             "args": ["./asm_web_pages/TRS-80 - Model I - Level 1/TRS-80 - Level 1 ROM Disassembled.html"]
         },
         {
+            "name": "Debugg: extract_asm.py - Model I - Level 1 - Disassembly format",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "extract_asm.py",
+            "args": ["./asm_web_pages/TRS-80 - Model I - Level 1/TRS-80 - Level 1 ROM Disassembled.html", "-d"]
+        },
+        {
             "name": "Debugg: extract_asm.py - Model I - Level 2 - Part 1",
             "type": "debugpy",
             "request": "launch",
