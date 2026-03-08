@@ -146,17 +146,19 @@ def process_assembly_row_combined(code_line, hash):
     elif pc.case2col2.condition(col_instruction_count, col_instruction):
         end = pc.case2col2(col_instruction)
         if end: return
-    elif pc.case3col2.condition(col_instruction_count):
+    elif pc.case3col2.condition(col_instruction):
         pc.case3col2(col_instruction)
-    elif pc.case4col2.condition(col_instruction_count, col_instruction):
-        end = pc.case4col2(col_address, col_instruction, col_comment)
-        if end: return
+    elif pc.case4col2.condition(col_instruction_count):
+        pc.case4col2(col_instruction)
     elif pc.case5col2.condition(col_instruction_count, col_instruction):
-        pc.case5col2(col_instruction)
+        end = pc.case5col2(col_address, col_instruction, col_comment)
+        if end: return
     elif pc.case6col2.condition(col_instruction_count, col_instruction):
         pc.case6col2(col_instruction)
-    elif pc.case7col2.condition(col_instruction_count, col_comment_count):
-        end = pc.case7col2(col_address, col_instruction, col_comment)
+    elif pc.case7col2.condition(col_instruction_count, col_instruction):
+        pc.case7col2(col_instruction)
+    elif pc.case8col2.condition(col_instruction_count, col_comment_count):
+        end = pc.case8col2(col_address, col_instruction, col_comment)
         if end: return
     else:
         h.error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")

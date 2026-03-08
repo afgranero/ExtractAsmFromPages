@@ -3,13 +3,14 @@ import operator
 from bs4 import element
 
 import column_processing as cp
+import check_strings as cs
 from constants import *
 from decorators import *
 import fix_addresses as fa
 import format_output as fo
 import helpers as h
 from modal_constants import WIDTH_ADDRESS
-import string_checks as sc
+
 
 
 @call_count
@@ -82,8 +83,8 @@ def case1col1(col_address, hash):
     elif action == fa.INSERT_NEXT:
         fa.fix_address.next = (new_address, extra)
 
-    if not sc.is_address_valid(address):
-        h.error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{sc.is_address_valid.prev_address_dec:X}H'.")
+    if not cs.is_address_valid(address):
+        h.error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{cs.is_address_valid.prev_address_dec:X}H'.")
 
     print(fo.format_address(address), end="")
     return False
@@ -156,8 +157,8 @@ def case2col1(col_address, col_instruction, col_comment, hash):
             # address and instruction lists are inconsistent
             h.error_and_exit(f"Inconsistent addresses: '{col_address.contents[index]}' and instruction: '{col_instruction.contents[index_line]:}'.")
 
-        if not sc.is_address_valid(address):
-            h.error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{sc.is_address_valid.prev_address_dec:X}H'.")
+        if not cs.is_address_valid(address):
+            h.error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{cs.is_address_valid.prev_address_dec:X}H'.")
 
         lines.append(f"{fo.format_address(address)}{fo.format_instruction(instruction)}{DELIMITER_LEFT}{comments[index_line]}")
         index_line += 1
@@ -192,15 +193,15 @@ def case3col1(col_address, col_instruction, col_comment):
     address2 = addresses[1].get_text(strip=True)
     address3 = addresses[2].get_text(strip=True)
 
-    f_address1_valid = sc.is_address_valid(address1)
+    f_address1_valid = cs.is_address_valid(address1)
     if not f_address1_valid:
-        h.error_and_exit(f"Inconsistent addresses: current: '{address1}', previous: '{sc.is_address_valid.prev_address_dec:X}H'.")
+        h.error_and_exit(f"Inconsistent addresses: current: '{address1}', previous: '{cs.is_address_valid.prev_address_dec:X}H'.")
 
-    f_address3_valid = sc.is_address_valid(address3)
+    f_address3_valid = cs.is_address_valid(address3)
     if not f_address3_valid:
-        h.error_and_exit(f"Inconsistent addresses: current: '{address3}', previous: '{sc.is_address_valid.prev_address_dec:X}H'.")
+        h.error_and_exit(f"Inconsistent addresses: current: '{address3}', previous: '{cs.is_address_valid.prev_address_dec:X}H'.")
 
-    if not(sc.is_address_valid.address_dec - sc.is_address_valid.prev_address_dec == 1 and address2 == ""):
+    if not(cs.is_address_valid.address_dec - cs.is_address_valid.prev_address_dec == 1 and address2 == ""):
         h.error_and_exit(f"Unexpected format: '{col_address.decode_contents()}'.")
 
     lines = []
@@ -221,7 +222,7 @@ def case3col1(col_address, col_instruction, col_comment):
 
 
 @call_count
-@with_condition(lambda col_instruction_count, col_instruction: col_instruction_count == 1 and sc.is_quoted_string(col_instruction.contents[0].get_text()))
+@with_condition(lambda col_instruction_count, col_instruction: col_instruction_count == 1 and cs.is_quoted_string(col_instruction.contents[0].get_text()))
 def case1col2(col_instruction):
     # example:
     #
@@ -238,7 +239,7 @@ def case1col2(col_instruction):
 
 
 @call_count
-@with_condition(lambda col_instruction_count, col_instruction: col_instruction_count == 1 and sc.is_quoted_string_with_cr(col_instruction.contents[0].get_text()))
+@with_condition(lambda col_instruction_count, col_instruction: col_instruction_count == 1 and cs.is_quoted_string_with_cr(col_instruction.contents[0].get_text()))
 def case2col2(col_instruction):
     # example:
     #
@@ -256,8 +257,16 @@ def case2col2(col_instruction):
 
 
 @call_count
-@with_condition(lambda col_instruction_count: col_instruction_count == 1)
+@with_condition(lambda col_instruction: col_instruction.get_text()[:5] == "DEFB " and len(col_instruction.get_text()[5:].split(" ")) > 1 and all(map(cs.is_hex, map(lambda s: s[:-1], col_instruction.get_text()[5:].split(" ")))))
 def case3col2(col_instruction):
+    instruction = col_instruction.get_text()[5:].replace(" ", ", ")
+    print(fo.format_instruction(instruction))
+    pass
+
+
+@call_count
+@with_condition(lambda col_instruction_count: col_instruction_count == 1)
+def case4col2(col_instruction):
     # examples:
     #
     #   <div class="assembly-row-combined">
@@ -297,7 +306,7 @@ def case3col2(col_instruction):
 
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and col_instruction.contents[0][0:3] == "RST")
-def case4col2(col_address, col_instruction, col_comment):
+def case5col2(col_address, col_instruction, col_comment):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -333,7 +342,7 @@ def case4col2(col_address, col_instruction, col_comment):
     comments = cp.get_comment_lines(comment, text_width, lines_count)
 
     lines = []
-    address_dec, _ = sc.hex2dec(col_address.contents[0][:-1])
+    address_dec, _ = cs.hex2dec(col_address.contents[0][:-1])
     index_line = 0
     for index in range(0, col_instruction_count):
         instruction = col_instruction.contents[index].get_text(strip=True)
@@ -364,7 +373,7 @@ def case4col2(col_address, col_instruction, col_comment):
 
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and col_instruction.contents[0][0] == '"')
-def case5col2(col_instruction):
+def case6col2(col_instruction):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -380,8 +389,8 @@ def case5col2(col_instruction):
 
 
 @call_count
-@with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and sc.is_hex(col_instruction.contents[0][-3:-1]))
-def case6col2(col_instruction):
+@with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and cs.is_hex(col_instruction.contents[0][-3:-1]))
+def case7col2(col_instruction):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -403,7 +412,7 @@ def case6col2(col_instruction):
 
 @call_count
 @with_condition(lambda col_instruction_count, col_comment_count: col_instruction_count > 1 and col_comment_count == 1)
-def case7col2(col_address, col_instruction, col_comment):
+def case8col2(col_address, col_instruction, col_comment):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -426,7 +435,7 @@ def case7col2(col_address, col_instruction, col_comment):
     comments = cp.get_comment_lines(comment, WIDTH_COMMENT - len(DELIMITER_LEFT))
 
     lines = []
-    address_dec, _ = sc.hex2dec(col_address.contents[0][:-1])
+    address_dec, _ = cs.hex2dec(col_address.contents[0][:-1])
     index_line = 0
     for index in range(0, col_instruction_count):
         instruction = col_instruction.contents[index].get_text(strip=True)
@@ -573,7 +582,3 @@ def case3col3(col_comment):
             print(f"{' '*(WIDTH_ADDRESS+WIDTH_INSTRUCTION)}{DELIMITER_LEFT}{line}")
 
     print()
-
-
-
-

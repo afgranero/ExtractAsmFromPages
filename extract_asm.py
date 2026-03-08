@@ -2,10 +2,9 @@ import argparse
 import os
 from pathlib import Path
 
+from constants import *
 import helpers as h
 import modal_constants as mc
-
-
 
 
 def main():
@@ -19,11 +18,11 @@ def main():
 
     mc.set("DISASSEMBLER_MODE", args.disassembler_mode)
     if args.disassembler_mode:
-        mc.set("WIDTH_ADDRESS", 8)
+        mc.set("WIDTH_ADDRESS", WIDTH_ADDRESS_DISASSEMBLY_MODE)
     else:
-        mc.set("WIDTH_ADDRESS", 12)
+        mc.set("WIDTH_ADDRESS", WIDTH_ADDRESS_COMPILABLE_MODE)
 
-    # this import will access WIDTH_ADDRESS so it will crash if made before initializing it
+    # this import will access WIDTH_ADDRESS ansd it is here because it will crash if made before initializing it
     from process_classes import process
 
     script_dir = Path(__file__).resolve().parent
@@ -38,8 +37,6 @@ def main():
 
     if os.path.isfile(path):
         files.append(path)
-
-
 
     for file in files:
         hash = h.compute_file_hash(file)
