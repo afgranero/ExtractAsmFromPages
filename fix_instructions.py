@@ -2,6 +2,8 @@ import check_strings as cs
 from decorators import *
 
 
+# TODO move case1col2, case2col2 and case3col2 here 
+
 def fix_instruction(instruction):
     if fix_missing_defb.condition(instruction):
         instruction = fix_missing_defb(instruction)

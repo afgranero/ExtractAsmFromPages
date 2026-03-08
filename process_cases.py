@@ -220,7 +220,7 @@ def case3col1(col_address, col_instruction, col_comment):
 
     print()
 
-
+# TODO move to fix_instructions
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count == 1 and cs.is_quoted_string(col_instruction.contents[0].get_text()))
 def case1col2(col_instruction):
@@ -237,7 +237,7 @@ def case1col2(col_instruction):
     instruction = f"DEFM {instruction}"
     print(fo.format_instruction(instruction), end="")
 
-
+# TODO move to fix_instructions
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count == 1 and cs.is_quoted_string_with_cr(col_instruction.contents[0].get_text()))
 def case2col2(col_instruction):
@@ -255,11 +255,12 @@ def case2col2(col_instruction):
     print(fo.format_instruction(instruction))
     return True
 
-
+# TODO move to fix_instructions
 @call_count
 @with_condition(lambda col_instruction: col_instruction.get_text()[:5] == "DEFB " and len(col_instruction.get_text()[5:].split(" ")) > 1 and all(map(cs.is_hex, map(lambda s: s[:-1], col_instruction.get_text()[5:].split(" ")))))
 def case3col2(col_instruction):
-    instruction = col_instruction.get_text()[5:].replace(" ", ", ")
+   # DEFB of several bytes without commas: DEFB 40H E7H 4DH change to DEFB 40H, E7H, 4DH  
+    instruction = col_instruction.get_text()[:5] + col_instruction.get_text()[5:].replace(" ", ", ")
     print(fo.format_instruction(instruction))
     pass
 
