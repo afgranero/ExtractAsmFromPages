@@ -141,14 +141,7 @@ def process_assembly_row_combined(code_line, hash):
         h.error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
 
     # column 1 instruction
-    if pc.case1col2.condition(col_instruction_count, col_instruction):
-        pc.case1col2(col_instruction)
-    elif pc.case2col2.condition(col_instruction_count, col_instruction):
-        end = pc.case2col2(col_instruction)
-        if end: return
-    elif pc.case3col2.condition(col_instruction):
-        pc.case3col2(col_instruction)
-    elif pc.case4col2.condition(col_instruction_count):
+    if pc.case4col2.condition(col_instruction_count):
         pc.case4col2(col_instruction)
     elif pc.case5col2.condition(col_instruction_count, col_instruction):
         end = pc.case5col2(col_address, col_instruction, col_comment)
@@ -193,7 +186,6 @@ def process_classes(code_line, hash):
 
 
 def process(file, hash):
-    # TODO fix cases like  DEFB 00H 00H 80H 80H
     try:
         with open(file, 'r', encoding='utf-8') as f:
             content = f.read()
