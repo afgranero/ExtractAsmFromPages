@@ -15,7 +15,7 @@ import split_comments as sc
 
 @call_count
 @with_condition(lambda cols_count: cols_count == 4)
-def case1general(cols):
+def general_case1(cols):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -39,7 +39,7 @@ def case1general(cols):
 
 @call_count
 @with_condition(lambda col_address_count: col_address_count == 1)
-def case1col1(col_address, hash):
+def address_case1(col_address, hash):
     # examples:
     # 
     #   <div class="assembly-row-combined">
@@ -92,7 +92,7 @@ def case1col1(col_address, hash):
 
 @call_count
 @with_condition(lambda col_address_count, col_instruction_count: col_address_count in [3, 5] and col_address_count == col_instruction_count)
-def case2col1(col_address, col_instruction, col_comment, hash):
+def address_case2(col_address, col_instruction, col_comment, hash):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -176,7 +176,7 @@ def case2col1(col_address, col_instruction, col_comment, hash):
 
 @call_count
 @with_condition(lambda col_address_count, col_instruction_count: col_address_count == 3 and col_instruction_count == 1)
-def case3col1(col_address, col_instruction, col_comment):
+def address_case3(col_address, col_instruction, col_comment):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -223,7 +223,7 @@ def case3col1(col_address, col_instruction, col_comment):
 
 @call_count
 @with_condition(lambda col_instruction_count: col_instruction_count == 1)
-def case4col2(col_instruction):
+def instruction_case1(col_instruction):
     # examples:
     #
     #   <div class="assembly-row-combined">
@@ -263,7 +263,7 @@ def case4col2(col_instruction):
 
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and col_instruction.contents[0][0:3] == "RST")
-def case5col2(col_address, col_instruction, col_comment):
+def instruction_case2(col_address, col_instruction, col_comment):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -330,7 +330,7 @@ def case5col2(col_address, col_instruction, col_comment):
 
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and col_instruction.contents[0][0] == '"')
-def case6col2(col_instruction):
+def instruction_case3(col_instruction):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -347,7 +347,7 @@ def case6col2(col_instruction):
 
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and cs.is_hex(col_instruction.contents[0][-3:-1]))
-def case7col2(col_instruction):
+def instruction_case4(col_instruction):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -369,7 +369,7 @@ def case7col2(col_instruction):
 
 @call_count
 @with_condition(lambda col_instruction_count, col_comment_count: col_instruction_count > 1 and col_comment_count == 1)
-def case8col2(col_address, col_instruction, col_comment):
+def instruction_case5(col_address, col_instruction, col_comment):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -418,7 +418,7 @@ def case8col2(col_address, col_instruction, col_comment):
 
 @call_count
 @with_condition(lambda col_comment_count: col_comment_count == 0)
-def case1col3():
+def comment_case1():
     # exemplo:
     #
     #   <div class="assembly-row-combined">
@@ -434,7 +434,7 @@ def case1col3():
 
 @call_count
 @with_condition(lambda col_comment_count: col_comment_count == 1)
-def case2col3(col_comment):
+def comment_case2(col_comment):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -457,7 +457,7 @@ def case2col3(col_comment):
 
 @call_count
 @with_condition(lambda col_comment_count: col_comment_count > 1)
-def case3col3(col_comment):
+def comment_case3(col_comment):
     # example:
     #
     #   <div class="assembly-row-combined">

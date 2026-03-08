@@ -112,8 +112,8 @@ def process_assembly_row_combined(code_line, hash):
     cols = list(code_line.children)
     cols_count = len(cols)
 
-    if pc.case1general.condition(cols_count):
-        cols, cols_count = pc.case1general(cols)
+    if pc.general_case1.condition(cols_count):
+        cols, cols_count = pc.general_case1(cols)
 
     col_address = cols[COL_INDEX_ADDRESS]
     col_address_count = len(col_address.contents)
@@ -129,40 +129,40 @@ def process_assembly_row_combined(code_line, hash):
         col_comment_count = 0
 
     # column 0 address
-    if pc.case1col1.condition(col_address_count):
-        end = pc.case1col1(col_address, hash)
+    if pc.address_case1.condition(col_address_count):
+        end = pc.address_case1(col_address, hash)
         if end: return
-    elif pc.case2col1.condition(col_address_count, col_instruction_count):
-        end = pc.case2col1(col_address, col_instruction, col_comment, hash)
+    elif pc.address_case2.condition(col_address_count, col_instruction_count):
+        end = pc.address_case2(col_address, col_instruction, col_comment, hash)
         if end: return
-    elif pc.case3col1.condition(col_address_count, col_instruction_count):
-        pc.case3col1(col_address, col_instruction, col_comment)
+    elif pc.address_case3.condition(col_address_count, col_instruction_count):
+        pc.address_case3(col_address, col_instruction, col_comment)
     else:
         h.error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
 
     # column 1 instruction
-    if pc.case4col2.condition(col_instruction_count):
-        pc.case4col2(col_instruction)
-    elif pc.case5col2.condition(col_instruction_count, col_instruction):
-        end = pc.case5col2(col_address, col_instruction, col_comment)
+    if pc.instruction_case1.condition(col_instruction_count):
+        pc.instruction_case1(col_instruction)
+    elif pc.instruction_case2.condition(col_instruction_count, col_instruction):
+        end = pc.instruction_case2(col_address, col_instruction, col_comment)
         if end: return
-    elif pc.case6col2.condition(col_instruction_count, col_instruction):
-        pc.case6col2(col_instruction)
-    elif pc.case7col2.condition(col_instruction_count, col_instruction):
-        pc.case7col2(col_instruction)
-    elif pc.case8col2.condition(col_instruction_count, col_comment_count):
-        end = pc.case8col2(col_address, col_instruction, col_comment)
+    elif pc.instruction_case3.condition(col_instruction_count, col_instruction):
+        pc.instruction_case3(col_instruction)
+    elif pc.instruction_case4.condition(col_instruction_count, col_instruction):
+        pc.instruction_case4(col_instruction)
+    elif pc.instruction_case5.condition(col_instruction_count, col_comment_count):
+        end = pc.instruction_case5(col_address, col_instruction, col_comment)
         if end: return
     else:
         h.error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
 
     # column 2 comments
-    if pc.case1col3.condition(col_comment_count):
-        pc.case1col3()
-    elif pc.case2col3.condition(col_comment_count):
-        pc.case2col3(col_comment)
-    elif pc.case3col3.condition(col_comment_count):
-        pc.case3col3(col_comment)
+    if pc.comment_case1.condition(col_comment_count):
+        pc.comment_case1()
+    elif pc.comment_case2.condition(col_comment_count):
+        pc.comment_case2(col_comment)
+    elif pc.comment_case3.condition(col_comment_count):
+        pc.comment_case3(col_comment)
     else:
       h.error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
 
