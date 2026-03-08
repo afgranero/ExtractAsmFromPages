@@ -1,12 +1,12 @@
 from bs4 import BeautifulSoup
 
-import column_processing as cp
 from constants import *
 import fix_addresses as fa
 import format_output as fo
 from modal_constants import WIDTH_ADDRESS
 import helpers as h
 import process_cases as pc
+import split_comments as sc
 
 
 # this program is for extracting ASM code from a se of specific files ...
@@ -35,7 +35,7 @@ def process_assembly_section_title(code_line, hash):
     delimiters_width = len(DELIMITER_LEFT) + len(DELIMITER_RIGHT)
     text_width = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - delimiters_width
 
-    lines = cp.get_comment_lines(text, text_width)
+    lines = sc.get_comment_lines(text, text_width)
 
     print()
     print(box)
@@ -67,7 +67,7 @@ def process_main_notes(code_line, hash):
     delimiters_width = len(DELIMITER_LEFT) + len(DELIMITER_RIGHT)
     text_width = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - delimiters_width
 
-    lines = cp.get_comment_lines(text, text_width)
+    lines = sc.get_comment_lines(text, text_width)
 
     print(box)
     for line in lines:
@@ -94,7 +94,7 @@ def process_debug_note(code_line, hash):
     if action == fa.SKIP:
         return True
 
-    lines = cp.get_comment_lines(text, text_width)
+    lines = sc.get_comment_lines(text, text_width)
 
     print()
     print(box)

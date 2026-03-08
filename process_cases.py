@@ -2,7 +2,6 @@ import operator
 
 from bs4 import element
 
-import column_processing as cp
 import check_strings as cs
 from constants import *
 from decorators import *
@@ -10,6 +9,7 @@ import fix_addresses as fa
 import format_output as fo
 import helpers as h
 from modal_constants import WIDTH_ADDRESS
+import split_comments as sc
 
 
 
@@ -130,10 +130,10 @@ def case2col1(col_address, col_instruction, col_comment, hash):
          h.error_and_exit(f"Comment lines expected: '1', found: '{len(col_comment.contents)}'.")
 
     col_address_count = len(col_address.contents)
-    lines_count = cp.get_lines_from_lines_spaces(col_address_count)
+    lines_count = sc.get_lines_from_lines_spaces(col_address_count)
     text_width = WIDTH_COMMENT - len(DELIMITER_LEFT)
     comment = col_comment.contents[0]
-    comments = cp.get_comment_lines(comment, text_width, lines_count)
+    comments = sc.get_comment_lines(comment, text_width, lines_count)
 
     lines = []
     index_line = 0
@@ -206,7 +206,7 @@ def case3col1(col_address, col_instruction, col_comment):
 
     lines = []
     instruction = col_instruction.contents[0].get_text(strip=True)
-    comments = cp.get_comment_lines(col_comment.contents[0], WIDTH_COMMENT - len(DELIMITER_LEFT))
+    comments = sc.get_comment_lines(col_comment.contents[0], WIDTH_COMMENT - len(DELIMITER_LEFT))
     comment = comments[0]
 
     if len(comments) > 1 or len(col_comment.contents) > 1:
@@ -337,9 +337,9 @@ def case5col2(col_address, col_instruction, col_comment):
             comment += f" {cur_content} "
 
     text_width = WIDTH_COMMENT - len(DELIMITER_LEFT)
-    lines_count = cp.get_lines_from_lines_spaces(col_instruction_count)
+    lines_count = sc.get_lines_from_lines_spaces(col_instruction_count)
     # comments = get_normalized_comment(comment, col_instruction_count)
-    comments = cp.get_comment_lines(comment, text_width, lines_count)
+    comments = sc.get_comment_lines(comment, text_width, lines_count)
 
     lines = []
     address_dec, _ = cs.hex2dec(col_address.contents[0][:-1])
@@ -432,7 +432,7 @@ def case8col2(col_address, col_instruction, col_comment):
     # just one comment as it is in the condition of the case
     col_instruction_count = len(col_instruction.contents)
     comment = col_comment.contents[0]
-    comments = cp.get_comment_lines(comment, WIDTH_COMMENT - len(DELIMITER_LEFT))
+    comments = sc.get_comment_lines(comment, WIDTH_COMMENT - len(DELIMITER_LEFT))
 
     lines = []
     address_dec, _ = cs.hex2dec(col_address.contents[0][:-1])
@@ -487,7 +487,7 @@ def case2col3(col_comment):
     #   </div>
 
     # normal case one comment
-    comments = cp.get_comment_lines(col_comment.contents[0], WIDTH_COMMENT - len(DELIMITER_LEFT))
+    comments = sc.get_comment_lines(col_comment.contents[0], WIDTH_COMMENT - len(DELIMITER_LEFT))
     for index, comment in enumerate(comments):
         if index == 0:
             print(f"{DELIMITER_LEFT}{comment}")
@@ -569,11 +569,11 @@ def case3col3(col_comment):
     split_lines = []
     line_width =  WIDTH_COMMENT - len(DELIMITER_LEFT)
     for line in temp_lines:
-        partial_split_lines = cp.get_split_comment(line, line_width)
+        partial_split_lines = sc.get_split_comment(line, line_width)
         for split_line in partial_split_lines:
             split_lines.append(split_line)
 
-    lines = cp.add_split_comment_delimiters(split_lines)
+    lines = sc.add_split_comment_delimiters(split_lines)
 
     for index, line in enumerate(lines):
         if index == 0:
