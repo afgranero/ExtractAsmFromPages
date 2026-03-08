@@ -1,10 +1,14 @@
 
 from constants import *
 import fix_instructions as fi
+from modal_constants import DISASSEMBLER_MODE, WIDTH_ADDRESS
 
 
 def format_address(address):
-    return f"{address:<{WIDTH_ADDRESS}}"
+    if DISASSEMBLER_MODE:
+        return f"{address:<{WIDTH_ADDRESS}}"
+    else:
+        return f" ORG {address}: "
 
 
 def format_instruction(instruction):

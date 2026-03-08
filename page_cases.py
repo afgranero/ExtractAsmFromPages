@@ -8,6 +8,7 @@ from decorators import *
 import fix_addresses as fa
 import format_output as fo
 import helpers as h
+from modal_constants import WIDTH_ADDRESS
 import string_checks as sc
 
 
