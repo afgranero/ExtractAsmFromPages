@@ -309,7 +309,7 @@ def instruction_case2(col_address, col_instruction, col_comment):
 
         if index_line == 0:
             # first line is a normal one: address already printed and, just the instruction ...
-            lines.append(fo.format_instruction(instruction) + comments[index_line])
+            lines.append(f"{fo.format_instruction(instruction)}{DELIMITER_LEFT}{comments[index_line]}")
         else:
             # ... next lines need to print the adress and, are data so a DEFB is needed
             lines.append(f"{fo.format_address(f'{address_dec:04X}H')}{fo.format_instruction(instruction)}{DELIMITER_LEFT}{comments[index_line]}")
@@ -402,10 +402,10 @@ def instruction_case5(col_address, col_instruction, col_comment):
 
         if index_line == 0:
             # first line is a normal one: address already printed and, just the instruction ...
-            lines.append(fo.format_instruction(instruction) + comments[index_line])
+            lines.append(f"{fo.format_instruction(instruction)}{DELIMITER_LEFT}{comments[index_line]}")
         else:
             # ... next lines need to print the adress and, are data so a DEFB is needed
-            lines.append(fo.format_address(f"{address_dec:04X}H") + fo.format_instruction(instruction) + comments[index_line])
+            lines.append(f"{fo.format_address(f'{address_dec:04X}H')}{fo.format_instruction(instruction)}{DELIMITER_LEFT}{comments[index_line]}")
 
         address_dec+=1
         index_line +=1
