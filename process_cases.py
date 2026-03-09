@@ -306,6 +306,9 @@ def instruction_case2(col_address, col_instruction, col_comment):
         if instruction == "":
             # it is a </br> skipt it
             continue
+        if instruction[-1] != "H" and cs.is_hex(instruction):
+            # is is a hexadecimal byte without the H sufix
+            instruction = f"{instruction}H"
 
         if index_line == 0:
             # first line is a normal one: address already printed and, just the instruction ...
