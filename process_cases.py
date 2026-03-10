@@ -222,6 +222,35 @@ def address_case3(col_address, col_instruction, col_comment):
 
 
 @call_count
+@with_condition(lambda col_instruction_count, col_instruction: col_instruction_count == 1 and col_instruction.contents[0].name == "a" and len(col_instruction.contents[0].contents) > 1)
+def instruction_case0(col_address, col_instruction, col_comment, hash):
+    # examples:
+    #
+    #    <div class="assembly-row-combined">
+    #        <div>0782H</div>
+    #        <div>
+    #            <a href="#0791H" class="memory-link">
+    #               RST 08H
+    #               <br>
+    #               3EH
+    #               <br>
+    #               0CH
+    #            </a>
+    #        </div>
+    #        <div>Check for a "<span class="code">&gt;</span>" via a call to RST 08H with parameters of 3EH and an 
+    #             offset of 0CH. RST 08H will move to the next non-space character and check it against 3EH (which is a
+    #             "<span class="code">&gt;</span>"). If there is no match, jump to the return (of the next instruction, 
+    #             i.e. 0785H) + 0CH instructions (which would be <a href="https://www.trs-80.com/0791H" class="memory-link">0791H</a>) 
+    #             to handle a straight "<span class="code">&lt;</span>".
+    #        </div>
+    #    </div>
+
+    # this is the single special case of case 2 where inside the div all is emcompassed by a link
+    inner_col_instruction = col_instruction.contents[0]
+    return instruction_case2(col_address, inner_col_instruction, col_comment, hash)
+
+
+@call_count
 @with_condition(lambda col_instruction_count: col_instruction_count == 1)
 def instruction_case1(col_instruction):
     # examples:
@@ -263,7 +292,7 @@ def instruction_case1(col_instruction):
 
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count > 1 and col_instruction.contents[0][0:3] == "RST")
-def instruction_case2(col_address, col_instruction, col_comment):
+def instruction_case2(col_address, col_instruction, col_comment, hash):
     # example:
     #
     #   <div class="assembly-row-combined">
@@ -299,7 +328,9 @@ def instruction_case2(col_address, col_instruction, col_comment):
     comments = sc.get_comment_lines(comment, text_width, lines_count)
 
     lines = []
-    address_dec, _ = cs.hex2dec(col_address.contents[0][:-1])
+    # fix_address already counted it on the address case, use "internal_instruction" for a separate count
+    _, address_hex, _ = fa.fix_address(col_address.contents[0], hash, "internal_instruction")
+    address_dec, _ = cs.hex2dec(address_hex[:-1])
     index_line = 0
     for index in range(0, col_instruction_count):
         instruction = col_instruction.contents[index].get_text(strip=True)
@@ -307,7 +338,7 @@ def instruction_case2(col_address, col_instruction, col_comment):
             # it is a </br> skipt it
             continue
         if instruction[-1] != "H" and cs.is_hex(instruction):
-            # is is a hexadecimal byte without the H sufix
+            # it is a hexadecimal byte without the H sufix
             instruction = f"{instruction}H"
 
         if index_line == 0:
