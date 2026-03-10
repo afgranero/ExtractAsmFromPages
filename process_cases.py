@@ -220,6 +220,8 @@ def address_case3(col_address, col_instruction, col_comment):
 
     print()
 
+    return True
+
 
 @call_count
 @with_condition(lambda col_instruction_count, col_instruction: col_instruction_count == 1 and col_instruction.contents[0].name == "a" and len(col_instruction.contents[0].contents) > 1)

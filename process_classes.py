@@ -136,7 +136,8 @@ def process_assembly_row_combined(code_line, hash):
         end = pc.address_case2(col_address, col_instruction, col_comment, hash)
         if end: return
     elif pc.address_case3.condition(col_address_count, col_instruction_count):
-        pc.address_case3(col_address, col_instruction, col_comment)
+        end = pc.address_case3(col_address, col_instruction, col_comment)
+        if end: return
     else:
         h.error_and_exit(f"Unexpected format: '{code_line.decode_contents()}'")
 
