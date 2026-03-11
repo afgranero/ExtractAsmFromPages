@@ -13,7 +13,7 @@ SjASMPlus Z80 Cross-Assembler v1.21.1 (https://github.com/z00m128/sjasmplus)
 Pass 1 complete (0 errors)
 Pass 2 complete (0 errors)
 Pass 3 complete
-Errors: 0, warnings: 0, compiled: 2 lines, work time: 0.012 seconds
+Errors: 0, warnings: 0, compiled: 2 lines, work time: 0.002 seconds
 
 ---------------------------- Results z80asm -----------------------------
 
@@ -37,7 +37,7 @@ SjASMPlus Z80 Cross-Assembler v1.21.1 (https://github.com/z00m128/sjasmplus)
 Pass 1 complete (0 errors)
 Pass 2 complete (0 errors)
 Pass 3 complete
-Errors: 0, warnings: 0, compiled: 2 lines, work time: 0.006 seconds
+Errors: 0, warnings: 0, compiled: 2 lines, work time: 0.001 seconds
 
 ---------------------------- Results z80asm -----------------------------
 
@@ -61,7 +61,7 @@ SjASMPlus Z80 Cross-Assembler v1.21.1 (https://github.com/z00m128/sjasmplus)
 Pass 1 complete (0 errors)
 Pass 2 complete (0 errors)
 Pass 3 complete
-Errors: 0, warnings: 0, compiled: 3 lines, work time: 0.013 seconds
+Errors: 0, warnings: 0, compiled: 3 lines, work time: 0.006 seconds
 
 ---------------------------- Results z80asm -----------------------------
 
@@ -90,7 +90,7 @@ Pass 1 complete (0 errors)
 Pass 2 complete (0 errors)
 test04-j.asm(3): warning[fileorg]: ORG does not pad output file to reach target address, bytes skipped: -1
 Pass 3 complete
-Errors: 0, warnings: 1, compiled: 6 lines, work time: 0.018 seconds
+Errors: 0, warnings: 1, compiled: 6 lines, work time: 0.002 seconds
 
 
 
@@ -129,7 +129,7 @@ Pass 1 complete (0 errors)
 Pass 2 complete (0 errors)
 test05-j.asm(3): warning[fileorg]: ORG does not pad output file to reach target address, bytes skipped: 1
 Pass 3 complete
-Errors: 0, warnings: 1, compiled: 6 lines, work time: 0.018 seconds
+Errors: 0, warnings: 1, compiled: 6 lines, work time: 0.007 seconds
 
 
 
@@ -167,7 +167,7 @@ SjASMPlus Z80 Cross-Assembler v1.21.1 (https://github.com/z00m128/sjasmplus)
 Pass 1 complete (0 errors)
 Pass 2 complete (0 errors)
 Pass 3 complete
-Errors: 0, warnings: 0, compiled: 5 lines, work time: 0.015 seconds
+Errors: 0, warnings: 0, compiled: 5 lines, work time: 0.001 seconds
 
 
 
@@ -211,7 +211,7 @@ Pass 1 complete (0 errors)
 Pass 2 complete (0 errors)
 test07-j-z.asm(5): error: Unexpected: + 0DH
 Pass 3 complete
-Errors: 1, warnings: 0, compiled: 8 lines, work time: 0.007 seconds
+Errors: 1, warnings: 0, compiled: 8 lines, work time: 0.005 seconds
 
 ---------------------------- Results z80asm -----------------------------
 
@@ -261,14 +261,14 @@ Errors: 0, warnings: 0, compiled: 14 lines, work time: 0.002 seconds
  NOP
  ORG 0004H
  NOP
- ORG 0005H: JR 0001H
+ ORG 0005H
+ JR 0001H
 
 
 ---------------------------- Results z80asm -----------------------------
 
 Assembling....
-test08-z.asm:12: error: junk at end of expression: : JR 0001H 
-*** 1 error found ***
+Assembly succesful.
 
 --------------------------------------------------------------------------
 
@@ -289,7 +289,7 @@ Pass 1 complete (0 errors)
 Pass 2 complete (0 errors)
 test09-j-z.asm(2): warning: value 0x102 is truncated to 8bit value: 0x02
 Pass 3 complete
-Errors: 0, warnings: 1, compiled: 3 lines, work time: 0.019 seconds
+Errors: 0, warnings: 1, compiled: 3 lines, work time: 0.007 seconds
 
 ---------------------------- Results z80asm -----------------------------
 
@@ -444,7 +444,7 @@ Pass 1 complete (0 errors)
 Pass 2 complete (0 errors)
 test10-j.asm(3): warning[fileorg]: ORG does not pad output file to reach target address, bytes skipped: -1
 Pass 3 complete
-Errors: 0, warnings: 1, compiled: 261 lines, work time: 0.003 seconds
+Errors: 0, warnings: 1, compiled: 261 lines, work time: 0.011 seconds
 
 
 
@@ -785,7 +785,7 @@ SjASMPlus Z80 Cross-Assembler v1.21.1 (https://github.com/z00m128/sjasmplus)
 Pass 1 complete (0 errors)
 Pass 2 complete (0 errors)
 Pass 3 complete
-Errors: 0, warnings: 0, compiled: 3 lines, work time: 0.002 seconds
+Errors: 0, warnings: 0, compiled: 3 lines, work time: 0.001 seconds
 
 ---------------------------- Results z80asm -----------------------------
 
@@ -847,7 +847,7 @@ test14-j-z.asm(5): error: Label not found: FFH
 test14-j-z.asm(6): error: Label not found: FF
 test14-j-z.asm(7): error: Digit not in base: 0FF)
 Pass 3 complete
-Errors: 4, warnings: 0, compiled: 8 lines, work time: 0.002 seconds
+Errors: 4, warnings: 0, compiled: 8 lines, work time: 0.013 seconds
 
 ---------------------------- Results z80asm -----------------------------
 
