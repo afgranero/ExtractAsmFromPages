@@ -40,8 +40,10 @@ def fix_defb_xxxxh_to_defb_xxh_coma_xxh(instruction):
     # DEFB 84C4H
     #
 
-    # defb instead of defw what is wrong because addresses must be little endian (return DEFB 84h, C4H)
-    instruction = f"DEFB {instruction[5:7]}H, {instruction[7:-1]}H"
+    # defb instead of defw what is wrong because addresses must be little endian (return DEFB 84h, 0C4H)
+    msb = fix_hexa_labels_ambiguity(instruction[5:7])
+    lsb = fix_hexa_labels_ambiguity(instruction[7:-1])
+    instruction = f"DEFB {msb}H, {lsb}H"
     return instruction
 
 
@@ -155,7 +157,14 @@ def normalize_index_offsets(instruction, register):
 
     return new_instruction
 
-        
+def fix_hexa_labels_ambiguity(address):
+    if len(address) == 2 and address >= "9F":
+        return f"0{address}"
+    elif len(address) == 4 and address >= "9FFF":
+        return f"0{address}"
+    else:
+        return address
+
 
 
 
