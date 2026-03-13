@@ -90,7 +90,7 @@ def fix_defb_parameter_without_coma(instruction):
 
 
 @call_count
-@with_condition(lambda instruction: instruction[:5] == "DEFW " and len(instruction[5:-1]) == 4 and cs.is_hex(instruction[5:-1]) and instruction[:-1] == "H")
+@with_condition(lambda instruction: instruction[:5] == "DEFW " and len(instruction[5:-1]) == 4 and cs.is_hex(instruction[5:-1]) and instruction[-1] == "H")
 def fix_defw_to_defb(instruction):
     # example:
     #
