@@ -7,8 +7,8 @@ def fix_instruction(instruction):
     
     if fix_missing_defb.condition(instruction):
         instruction = fix_missing_defb(instruction)
-    elif fix_defb_instead_of_defw.condition(instruction):
-        instruction = fix_defb_instead_of_defw(instruction)
+    elif fix_defb_xxxxh_to_defb_xxh_coma_xxh.condition(instruction):
+        instruction = fix_defb_xxxxh_to_defb_xxh_coma_xxh(instruction)
     elif fix_missing_defm.condition(instruction):
         instruction = fix_missing_defm(instruction)
     elif fix_plus_instead_of_coma.condition(instruction):
@@ -34,14 +34,14 @@ def fix_missing_defb(instruction):
 
 @call_count
 @with_condition(lambda instruction: instruction[0:4] == "DEFB" and cs.is_hex(instruction[5:-1]) and instruction[-1] == "H" and len(instruction[5:-1]) > 2)
-def fix_defb_instead_of_defw(instruction):
+def fix_defb_xxxxh_to_defb_xxh_coma_xxh(instruction):
     # example:
     #
     # DEFB 84C4H
     #
 
-    # defb instead of defw what is wrong because addresses must be little endian (return DEFW 84C4H)
-    instruction = f"DEFW {instruction[5:-1]}H"
+    # defb instead of defw what is wrong because addresses must be little endian (return DEFB 84h, C4H)
+    instruction = f"DEFB {instruction[5:7]}H, {instruction[7:-1]}H"
     return instruction
 
 
