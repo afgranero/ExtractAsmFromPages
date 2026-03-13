@@ -15,6 +15,8 @@ def fix_instruction(instruction):
         instruction = fix_plus_instead_of_coma(instruction)
     elif fix_defb_parameter_without_coma.condition(instruction):
         instruction = fix_defb_parameter_without_coma(instruction)
+    elif fix_defw_to_defb.condition(instruction):
+        instruction = fix_defw_to_defb(instruction)
 
     return instruction
 
@@ -82,10 +84,23 @@ def fix_defb_parameter_without_coma(instruction):
     # DEFB 40H E7H 4DH
     #
 
-    # DEFB of several bytes without commas (creturn DEFB 40H, E7H, 4DH)
+    # DEFB of several bytes without commas (return DEFB 40H, E7H, 4DH)
     instruction = instruction[:5] + instruction[5:].replace(" ", ", ")
     return instruction
 
+
+@call_count
+@with_condition(lambda instruction: instruction[:5] == "DEFW " and len(instruction[5:-1]) == 4 and cs.is_hex(instruction[5:-1]) and instruction[:-1] == "H")
+def fix_defw_to_defb(instruction):
+    # example:
+    #
+    # DEFW 874BH
+    #
+    # DEFW generates little endian data, shouldbe be a DEFB 87H, 48H
+    msb = fix_hexa_labels_ambiguity(instruction[5:7])
+    lsb = fix_hexa_labels_ambiguity(instruction[7:-1])
+    instruction = f"DEFB {msb}H, {lsb}H"
+    return instruction
 
 def normalize_hex(instruction):
     # assemblers need a leading 0 on addresses or values that start with A, B, C, D, and F ...
@@ -146,16 +161,15 @@ def normalize_index_offsets(instruction, register):
         value -= 256
 
     replace_value = ""
-    if value > 0:
+    if value >= 0:
         replace_value = f"+{value}"
     elif value < 0:
         replace_value = f"{value}"
-    else:
-        pass
 
     new_instruction = instruction.replace(f"+{hex_value}H", replace_value)
 
     return new_instruction
+
 
 def fix_hexa_labels_ambiguity(address):
     if len(address) == 2 and address >= "9F":
