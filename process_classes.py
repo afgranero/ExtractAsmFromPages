@@ -210,7 +210,7 @@ def process(file, hash):
             if hasattr(fa.fix_address, "next"):
                 new_address = fa.fix_address.next
                 mising_code = fmc.fix_missing_code(new_address, hash)
-                print(mising_code, sep="")
+                print(mising_code, end="")
                 delattr(fa.fix_address, "next")
 
             process_classes(code_line, hash)
