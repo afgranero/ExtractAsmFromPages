@@ -10,10 +10,12 @@ import modal_constants as mc
 def main():
     parser = argparse.ArgumentParser(description="Extract assembler from specific HTML pages.")
     parser.add_argument("path", nargs='?', default=".", help="Path of file or files.")
+
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument("-d", "--disassembler", dest="disassembler_mode", action="store_true",  help="Outputs a disassembler format.")
     group.add_argument("-c", "--assembler",    dest="disassembler_mode", action="store_false", help="Outputs a compilable assembler format.")
     parser.set_defaults(disassembler_mode=True)
+    
     args = parser.parse_args()
 
     mc.set("DISASSEMBLER_MODE", args.disassembler_mode)
@@ -21,6 +23,8 @@ def main():
         mc.set("WIDTH_ADDRESS", WIDTH_ADDRESS_DISASSEMBLY_MODE)
     else:
         mc.set("WIDTH_ADDRESS", WIDTH_ADDRESS_COMPILABLE_MODE)
+
+    # TODO make a mode foe z80asm
 
     # this import will access WIDTH_ADDRESS ansd it is here because it will crash if made before initializing it
     from process_classes import process

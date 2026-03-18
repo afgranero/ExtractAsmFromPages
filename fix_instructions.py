@@ -102,6 +102,7 @@ def fix_defw_to_defb(instruction):
     instruction = f"DEFB {msb}H, {lsb}H"
     return instruction
 
+
 def normalize_hex(instruction):
     # assemblers need a leading 0 on addresses or values that start with A, B, C, D, and F ...
     # ... so they can distinguish immediate values from labels

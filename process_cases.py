@@ -75,13 +75,13 @@ def address_case1(col_address, hash):
     # normal case: one address
     address = col_address.contents[0]
 
-    action, new_address, extra = fa.fix_address(address, hash)
+    action, new_address = fa.fix_address(address, hash)
     if action == fa.SKIP:
         return True
     elif action == fa.SUBSTITUTE:
         address = new_address
     elif action == fa.INSERT_NEXT:
-        fa.fix_address.next = (new_address, extra)
+        fa.fix_address.next = new_address
 
     if not cs.is_address_valid(address):
         h.error_and_exit(f"Inconsistent addresses: current: '{address}', previous: '{cs.is_address_valid.prev_address_dec:X}H'.")
@@ -139,13 +139,13 @@ def address_case2(col_address, col_instruction, col_comment, hash):
     index_line = 0
     for index in range(0, col_address_count):
         address = col_address.contents[index].get_text(strip=True)
-        action, new_address, extra = fa.fix_address(address, hash)
+        action, new_address = fa.fix_address(address, hash)
         if action == fa.SKIP:
             return True
         elif action == fa.SUBSTITUTE:
             address = new_address
         elif action == fa.INSERT_NEXT:
-            fa.fix_address.next = (new_address, extra)
+            fa.fix_address.next = new_address
 
         instruction = col_instruction.contents[index].get_text(strip=True)
 
@@ -331,7 +331,7 @@ def instruction_case2(col_address, col_instruction, col_comment, hash):
 
     lines = []
     # fix_address already counted it on the address case, use "internal_instruction" for a separate count
-    _, address_hex, _ = fa.fix_address(col_address.contents[0], hash, "internal_instruction")
+    _, address_hex = fa.fix_address(col_address.contents[0], hash, "internal_instruction")
     address_dec, _ = cs.hex2dec(address_hex[:-1])
     index_line = 0
     for index in range(0, col_instruction_count):

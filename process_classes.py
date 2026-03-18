@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 
 from constants import *
 import fix_addresses as fa
+import fix_missing_code as fmc
 import format_output as fo
 from modal_constants import WIDTH_ADDRESS
 import helpers as h
@@ -24,7 +25,7 @@ def process_assembly_section_title(code_line, hash):
     process_assembly_section_title.title = text
 
     address_candidate = text[0:5]
-    action, _, _ = fa.fix_address(address_candidate, hash, "title")
+    action, _ = fa.fix_address(address_candidate, hash, "title")
     if action == fa.SKIP:
         return True
 
@@ -51,7 +52,7 @@ def process_main_notes(code_line, hash):
     text = code_line.get_text()
     text = text.replace("\r", "").replace("\n","").replace("  ", " ")
 
-    action, _, _ = fa.fix_address("", hash, "title")
+    action, _ = fa.fix_address("", hash, "title")
     if action == fa.SKIP:
         return True
 
@@ -90,7 +91,7 @@ def process_debug_note(code_line, hash):
     text = code_line.get_text()
     text = text.replace("\r", "").replace("\n","")
 
-    action, new_address, extra = fa.fix_address("", hash, "title")
+    action, _ = fa.fix_address("", hash, "title")
     if action == fa.SKIP:
         return True
 
@@ -207,8 +208,9 @@ def process(file, hash):
     if code_lines:
         for code_line in code_lines:
             if hasattr(fa.fix_address, "next"):
-                new_address, extra = fa.fix_address.next
-                print(f"{fo.format_address(new_address)}{fo.format_instruction(extra)}")
+                new_address = fa.fix_address.next
+                mising_code = fmc.fix_missing_code(new_address, hash)
+                print(mising_code, sep="")
                 delattr(fa.fix_address, "next")
 
             process_classes(code_line, hash)
