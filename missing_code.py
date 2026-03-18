@@ -1,10 +1,5 @@
 # the code here is in the format disassember, ...
 # ... it must be normalized by code to generate compilable in jsasmplus and z80asm
-
-MC_TRS80_M1_L1_032B = """032BH   DEFB 84H, 52H           ; AFG note: this data was ommited in the original
-
-"""
-
 MC_TRS80_M1_L1_0098= """
 ;----------------------------------------------------------------------------------------------------------------------------------;
 ; Missing code part adapted from https://github.com/andyv/level1/blob/master/level1.src                                            ;
@@ -131,6 +126,13 @@ MC_TRS80_M1_L1_0098= """
 ;----------------------------------------------------------------------------------------------------------------------------------;
 ; End of missing part.                                                                                                             ;
 ;----------------------------------------------------------------------------------------------------------------------------------;
+"""
+
+MC_TRS80_M1_L1_032B = """032BH   DEFB 84H, 52H           ; AFG note: this data was ommited in the original
+
+"""
+
+MC_TRS80_M1_L1_0336 = """
 """
 
 MC_TRS80_M1_L1_0EBD = """

@@ -11,6 +11,7 @@ FIX_LIST = {
             '0251H': (1, SUBSTITUTE,    '0252H'),           # address wrong
             '0287H': (2, SUBSTITUTE,    '02B7H'),           # address wrong
             '0329H': (1, INSERT_NEXT,   '032BH'),           # data word was ommited in the original
+            '0336H': (1, INSERT_NEXT,   '0336H'),           # add a line for better grouping
             '04ECH': (2, SUBSTITUTE,    '04EDH'),           # address repeated instead of incremented
             '0501H': (2, SUBSTITUTE,    '0502H'),           # address repeated instead of incremented
             '0580H': (1, SKIP,          '0581H'),           # this one is complicated, not an error ...

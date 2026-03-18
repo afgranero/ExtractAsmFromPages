@@ -11,8 +11,9 @@ MISSING_CODE = {
     # TRS-80 - Level 1 ROM Disassembled.html/TRS-80 - Level 1 ROM Disassembled.html
     '33e2ac3b3c6417fd9307feb68f4c7e2c965ce34b54b46fc8b274b39282eef019':
         {
-            '032BH': MC_TRS80_M1_L1_032B,
             '0098H': MC_TRS80_M1_L1_0098,
+            '032BH': MC_TRS80_M1_L1_032B,
+            '0336H': MC_TRS80_M1_L1_0336,
             '0EBDH': MC_TRS80_M1_L1_0EBD,
         },
     # TRS-80 - Model I - Level 2/Model I ROM Explained - Part 1.html
@@ -98,7 +99,7 @@ def normalize_code(code):
     for missing_code_line in iter(code.splitlines()):
         if len(missing_code_line) > 5 and cs.is_hex(missing_code_line[0:4]):
             address = fo.format_address(missing_code_line[0:5])
-            parts = missing_code_line[9:].split(DELIMITER_COMMENT)
+            parts = missing_code_line[8:].split(DELIMITER_COMMENT)
             if len(parts) == 2:
                 instruction, comment = parts
                 missing_code.append(f"{address}{instruction:<{WIDTH_INSTRUCTION}}{DELIMITER_COMMENT}{comment}")
@@ -151,4 +152,9 @@ def normalize_code(code):
         missing_code.append(missing_code_line)
 
     missing_code_string = '\n'.join(missing_code)
+    
+    # splitlines removes trailing newlines at the end this fix it:
+    if code[-1] == "\n":
+        missing_code_string = f"{missing_code_string}\n"
+
     return missing_code_string
