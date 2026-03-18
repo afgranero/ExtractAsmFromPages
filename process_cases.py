@@ -218,7 +218,13 @@ def address_case3(col_address, col_instruction, col_comment):
     for line in lines:
         print(line)
 
-    print()
+    end = "\n"
+    if hasattr(fa.fix_address, "next"):
+        # this allows missing code insertions control the extra lines before them
+        end = ""
+
+    print(end=end)
+
 
     return True
 
@@ -487,8 +493,15 @@ def comment_case2(col_comment):
         else:
             print(f"{' '*(WIDTH_ADDRESS+WIDTH_INSTRUCTION)}{DELIMITER_LEFT}{comment}")
 
-        if len(comments) != 1 and index == len(comments) - 1:
-            print()
+        if len(comments) != 1 and index == len(comments) - 1:\
+            # last line
+           
+            end = "\n"
+            if hasattr(fa.fix_address, "next"):
+                # this allows missing code insertions control the extra lines before them
+                end = ""
+
+            print(end=end)
 
 
 @call_count
@@ -532,7 +545,7 @@ def comment_case3(col_comment):
     # ... other case ...
     # ...    some foprmatting like kbd that spreads it in lines
 
-    # add lines wiithout spliting trivial tags just removing them
+    # add lines without spliting trivial tags just removing them
     temp_lines = []
     for content in col_comment.contents:
         if type(content) is element.NavigableString:
@@ -574,4 +587,9 @@ def comment_case3(col_comment):
         else:
             print(f"{' '*(WIDTH_ADDRESS+WIDTH_INSTRUCTION)}{DELIMITER_LEFT}{line}")
 
-    print()
+    end = "\n"
+    if hasattr(fa.fix_address, "next"):
+        # this allows missing code insertions control the extra lines before them
+        end = ""
+
+    print(end=end)
