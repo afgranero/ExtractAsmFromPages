@@ -5,70 +5,70 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debugg: extract_asm.py - Model I - Level 1",
+            "name": "Debug: extract_asm.py - Model I - Level 1",
             "type": "debugpy",
             "request": "launch",
             "program": "extract_asm.py",
             "args": ["./asm_web_pages/TRS-80 - Model I - Level 1/TRS-80 - Level 1 ROM Disassembled.html"]
         },
         {
-            "name": "Debugg: extract_asm.py - Model I - Level 1 - Disassembly format",
+            "name": "Debug: extract_asm.py - Model I - Level 1 - Disassembly format",
             "type": "debugpy",
             "request": "launch",
             "program": "extract_asm.py",
-            "args": ["./asm_web_pages/TRS-80 - Model I - Level 1/TRS-80 - Level 1 ROM Disassembled.html", "-d"]
+            "args": ["./asm_web_pages/TRS-80 - Model I - Level 1/TRS-80 - Level 1 ROM Disassembled.html", "TRS-80-LevelI-Model1-disassembly.asm", "-d"]
         },
         {
-            "name": "Debugg: extract_asm.py - Model I - Level 1 - Compilable format",
+            "name": "Debug: extract_asm.py - Model I - Level 1 - Compilable format",
             "type": "debugpy",
             "request": "launch",
             "program": "extract_asm.py",
-            "args": ["./asm_web_pages/TRS-80 - Model I - Level 1/TRS-80 - Level 1 ROM Disassembled.html", "-c"]
+            "args": ["./asm_web_pages/TRS-80 - Model I - Level 1/TRS-80 - Level 1 ROM Disassembled.html", "TRS-80-LevelI-Model1-compilable.asm", "-c"]
         },
         {
-            "name": "Debugg: extract_asm.py - Model I - Level 2 - Part 1",
+            "name": "Debug: extract_asm.py - Model I - Level 2 - Part 1",
             "type": "debugpy",
             "request": "launch",
             "program": "extract_asm.py",
             "args": ["./asm_web_pages/TRS-80 - Model I - Level 2/Model I ROM Explained - Part 1.html"]
         },
         {
-            "name": "Debugg: extract_asm.py - Model I - Level 2 - Part 2",
+            "name": "Debug: extract_asm.py - Model I - Level 2 - Part 2",
             "type": "debugpy",
             "request": "launch",
             "program": "extract_asm.py",
             "args": ["./asm_web_pages/TRS-80 - Model I - Level 2/Model I ROM Explained - Part 2.html"]
         },
         {
-            "name": "Debugg: extract_asm.py - Model I - Level 2 - Part 3",
+            "name": "Debug: extract_asm.py - Model I - Level 2 - Part 3",
             "type": "debugpy",
             "request": "launch",
             "program": "extract_asm.py",
             "args": ["./asm_web_pages/TRS-80 - Model I - Level 2/Model I ROM Explained - Part 3.html"]
         },
         {
-            "name": "Debugg: extract_asm.py - Model III - Part 1",
+            "name": "Debug: extract_asm.py - Model III - Part 1",
             "type": "debugpy",
             "request": "launch",
             "program": "extract_asm.py",
             "args": ["./asm_web_pages/TRS-80 Model III/Model III ROM Explained - Part 1.html"]
         },
         {
-            "name": "Debugg: extract_asm.py - Model III - Part 2",
+            "name": "Debug: extract_asm.py - Model III - Part 2",
             "type": "debugpy",
             "request": "launch",
             "program": "extract_asm.py",
             "args": ["./asm_web_pages/TRS-80 Model III/Model III ROM Explained - Part 2.html"]
         },
         {
-            "name": "Debugg: extract_asm.py - Model III - Part 3",
+            "name": "Debug: extract_asm.py - Model III - Part 3",
             "type": "debugpy",
             "request": "launch",
             "program": "extract_asm.py",
             "args": ["./asm_web_pages/TRS-80 Model III/Model III ROM Explained - Part 3.html"]
         },
         {
-            "name": "Debugg: extract_asm.py - Model III - Part 4",
+            "name": "Debug: extract_asm.py - Model III - Part 4",
             "type": "debugpy",
             "request": "launch",
             "program": "extract_asm.py",
