@@ -110,7 +110,7 @@ MC_TRS80_M1_L1_0098= """
 
 00FBH   POP BC
 00FCH   PUSH DE
-00FDH   RST 08H, 
+00FDH   RST 08H 
 00FEH   DEFB 'E'
 00FFH   DEFB 1CH                ; TARGET 011CH (AFG note: relative jump)
 0100H   RST 08H
@@ -146,7 +146,7 @@ MC_TRS80_M1_L1_0EBD = """
 ;                                                                                                                                  ;
 ;----------------------------------------------------------------------------------------------------------------------------------;
 
-0EBDH   CALL OEC4H
+0EBDH   CALL 0EC4H
 0EC0H   RET NZ
 0EC1H   JP 08C9H                ; Throw a WHAT
 
