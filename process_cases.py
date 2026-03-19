@@ -6,6 +6,7 @@ import check_strings as cs
 from constants import *
 from decorators import *
 import fix_addresses as fa
+import fix_constants as fc
 import format_output as fo
 import helpers as h
 from modal_constants import WIDTH_ADDRESS
@@ -76,11 +77,11 @@ def address_case1(col_address, hash):
     address = col_address.contents[0]
 
     action, new_address = fa.fix_address(address, hash)
-    if action == fa.SKIP:
+    if action == fc.SKIP:
         return True
-    elif action == fa.SUBSTITUTE:
+    elif action == fc.SUBSTITUTE:
         address = new_address
-    elif action == fa.INSERT_NEXT:
+    elif action == fc.INSERT_NEXT:
         fa.fix_address.next = new_address
 
     if not cs.is_address_valid(address):
@@ -140,12 +141,12 @@ def address_case2(col_address, col_instruction, col_comment, hash):
     for index in range(0, col_address_count):
         address = col_address.contents[index].get_text(strip=True)
         action, new_address = fa.fix_address(address, hash)
-        if action == fa.SKIP:
+        if action == fc.SKIP:
             return True
         elif action == fa.SUBSTITUTE:
             address = new_address
-        elif action == fa.INSERT_NEXT:
-            fa.fix_address.next = new_address
+        elif action == fc.INSERT_NEXT:
+            fc.fix_address.next = new_address
 
         instruction = col_instruction.contents[index].get_text(strip=True)
 

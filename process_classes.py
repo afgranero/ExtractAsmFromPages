@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 
 from constants import *
 import fix_addresses as fa
+import fix_constants as fc
 import fix_missing_code as fmc
 import format_output as fo
 from modal_constants import WIDTH_ADDRESS
@@ -26,7 +27,7 @@ def process_assembly_section_title(code_line, hash):
 
     address_candidate = text[0:5]
     action, _ = fa.fix_address(address_candidate, hash, "title")
-    if action == fa.SKIP:
+    if action == fc.SKIP:
         return True
 
     dashes_count = WIDTH_ADDRESS + WIDTH_INSTRUCTION + WIDTH_COMMENT - 2*len(DELIMITER_COMMENT)
@@ -53,7 +54,7 @@ def process_main_notes(code_line, hash):
     text = text.replace("\r", "").replace("\n","").replace("  ", " ")
 
     action, _ = fa.fix_address("", hash, "title")
-    if action == fa.SKIP:
+    if action == fc.SKIP:
         return True
 
     # avoid repeat title in main_note even if they differ just by "" around a char
@@ -92,7 +93,7 @@ def process_debug_note(code_line, hash):
     text = text.replace("\r", "").replace("\n","")
 
     action, _ = fa.fix_address("", hash, "title")
-    if action == fa.SKIP:
+    if action == fc.SKIP:
         return True
 
     lines = sc.get_comment_lines(text, text_width)
@@ -197,7 +198,7 @@ def process(file, hash):
     except FileNotFoundError:
         h.error_and_exit(f"Error: The file '{file}' was not found.")
     except IOError as e:
-        h.error_and_exit(f"Error reading file '{file}': {e}")
+        h.error_and_exit(f"Error reading file '{file}': {e.strerror}")
 
     soup = BeautifulSoup(content, 'html.parser')
     # TODO Process comments with ↓,→,←, and → and other non ASCII chars that macroassemblers does not accept
@@ -215,4 +216,4 @@ def process(file, hash):
 
             process_classes(code_line, hash)
     else:
-        pass
+        h.error_and_exit(f"No expected tags and classes found in file: '{file}'.")

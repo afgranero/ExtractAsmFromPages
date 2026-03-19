@@ -1,43 +1,9 @@
-
-
 from constants import *
 import check_strings as cs
+from fix_constants import *
 import format_output as fo
-from missing_code import *
 from modal_constants import WIDTH_ADDRESS
 from modal_constants import DISASSEMBLER_MODE
-
-MISSING_CODE = {
-    # TRS-80 - Level 1 ROM Disassembled.html/TRS-80 - Level 1 ROM Disassembled.html
-    '33e2ac3b3c6417fd9307feb68f4c7e2c965ce34b54b46fc8b274b39282eef019':
-        {
-            '0098H': MC_TRS80_M1_L1_0098,
-            '032BH': MC_TRS80_M1_L1_032B,
-            '0336H': MC_TRS80_M1_L1_0336,
-            '0EBDH': MC_TRS80_M1_L1_0EBD,
-        },
-    # TRS-80 - Model I - Level 2/Model I ROM Explained - Part 1.html
-    '76337e787a728184b3f5a8af89bedcb8ade1ad79937809d05302f4951f007676': 
-        {},
-    # TRS-80 - Model I - Level 2/Model I ROM Explained - Part 2.html
-    'ecc98da804913d11f43d7f9f5bc911841020af954a877c728891bd7f1013852b':
-        {},
-    # TRS-80 - Model I - Level 2/Model I ROM Explained - Part 3.html
-    'a9e56a939c987889be77c22b331974105b7aabc700f8d541d84560653e5f95a8':
-        {},
-    # Model III ROM Explained - Part 1.html
-    '0f2f2135b06b067b3ec6d751ead77d2801902272563ca3ae53bc8a890298089d':
-        {},
-    # Model III ROM Explained - Part 1.html/Model III ROM Explained - Part 2.html
-    'c4003dbe2e36707400a47c1f28d80ebaca5f7812b34014c3fb3f062c5273e48f':
-        {},
-    # Model III ROM Explained - Part 1.html/Model III ROM Explained - Part 3.html
-    'c73cf199246f061c047c108e6d1f375dd292f2b243b6d96859f37d94d2b607e6':
-        {},
-    # Model III ROM Explained - Part 1.html/Model III ROM Explained - Part 4.html
-    'dbabc65bdfb220c4d44a6f6ca8e9bad4ba8416c6885990e275908a7cc935111e':
-        {},
-    }
 
 
 # expected sizes and texts for disassembly code
@@ -152,7 +118,7 @@ def normalize_code(code):
         missing_code.append(missing_code_line)
 
     missing_code_string = '\n'.join(missing_code)
-    
+
     # splitlines removes trailing newlines at the end this fix it:
     if code[-1] == "\n":
         missing_code_string = f"{missing_code_string}\n"
