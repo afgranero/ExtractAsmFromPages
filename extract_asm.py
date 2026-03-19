@@ -13,12 +13,22 @@ def main():
     parser.add_argument("path", nargs='?', default=".", help="Path of input file.")
     parser.add_argument("output_path", nargs='?', default="", help="Path of output file.")
 
-    group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument("-d", "--disassembler", dest="disassembler_mode", action="store_true",  help="Outputs a disassembler format.")
-    group.add_argument("-c", "--assembler",    dest="disassembler_mode", action="store_false", help="Outputs a compilable assembler format.")
+    group0 = parser.add_mutually_exclusive_group(required=False)
+    group0.add_argument("-d", "--disassembler", dest="disassembler_mode", action="store_true", help="Outputs a disassembler format.")
+    group0.add_argument("-c", "--assembler", dest="disassembler_mode", action="store_false", help="Outputs a compilable assembler format.")
     parser.set_defaults(disassembler_mode=True)
+
+    group1 = parser.add_mutually_exclusive_group(required=False)
+    group1.add_argument("--no-inline-org", action='store_true', default=False, dest="no_inline_org", help="Generate ORG diretives in separated lines.")
+    group1.add_argument("--no-org", action='store_true', default=False, dest="no_org", help="Do not generate ORG directives.")
     
     args = parser.parse_args()
+
+    if args.no_inline_org and args.disassembler_mode :
+        parser.error("--no-inline-org requires the option -c or --assembler.")
+
+    if args.no_org and args.disassembler_mode :
+        parser.error("--no-org requires the option -c or --assembler.")
 
     mc.set("DISASSEMBLER_MODE", args.disassembler_mode)
     if args.disassembler_mode:
