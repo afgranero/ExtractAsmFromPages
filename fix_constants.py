@@ -187,7 +187,6 @@ MISSING_CODE = {
         {},
     }
 
-
 SKIP = 'skip'
 SUBSTITUTE = 'substitute'
 INSERT_NEXT = 'insert next'
