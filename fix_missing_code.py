@@ -37,7 +37,7 @@ DEBUG_NOTE_BOX_SPACES = f"{DEBUG_NOTE_SPACES}{DELIMITER_COMMENT}{' '*(DEBUG_NOTE
 
 
 def fix_missing_code(address, hash):
-    # TODO instead of returning None give an errror if the call will be kept in fix address
+    # TODO instead of returning None give an error if the call will be kept in fix address
     # TODO check if this is needed in fix_address too
 
     # this is not one of the expected files: do nothing

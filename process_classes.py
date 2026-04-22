@@ -201,7 +201,7 @@ def process(file, hash):
         h.error_and_exit(f"Error reading file '{file}': {e.strerror}")
 
     soup = BeautifulSoup(content, 'html.parser')
-    # TODO Process comments with ↓,→,←, and → and other non ASCII chars that macroassemblers does not accept
+    # TODO Process comments with ↓,→,←, and → and other non ASCII chars that macro assemblers does not accept
 
     div_classes = 'div.assembly-row-combined, h2.assembly-section-title, p.debug-note, p:not([class]):not([style])'
     code_lines = soup.select(div_classes)
@@ -210,8 +210,8 @@ def process(file, hash):
         for code_line in code_lines:
             if hasattr(fa.fix_address, "next"):
                 new_address = fa.fix_address.next
-                mising_code = fmc.fix_missing_code(new_address, hash)
-                print(mising_code, end="")
+                missing_code = fmc.fix_missing_code(new_address, hash)
+                print(missing_code, end="")
                 delattr(fa.fix_address, "next")
 
             process_classes(code_line, hash)

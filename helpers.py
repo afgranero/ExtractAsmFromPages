@@ -3,7 +3,7 @@ import os
 import sys
 
 
-# attributes in funtions are only initialized the first time tunction is called...
+# attributes in functions are only initialized the first time function is called...
 # ... using a decorator that is run at definition I can use them,
 def error_and_exit(message):
         print(message, file=sys.stderr)

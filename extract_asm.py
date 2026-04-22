@@ -19,7 +19,7 @@ def main():
     parser.set_defaults(disassembler_mode=True)
 
     group1 = parser.add_mutually_exclusive_group(required=False)
-    group1.add_argument("--no-inline-org", action='store_true', default=False, dest="no_inline_org", help="Generate ORG diretives in separated lines.")
+    group1.add_argument("--no-inline-org", action='store_true', default=False, dest="no_inline_org", help="Generate ORG directives in separated lines.")
     group1.add_argument("--no-org", action='store_true', default=False, dest="no_org", help="Do not generate ORG directives.")
     
     args = parser.parse_args()
@@ -66,7 +66,7 @@ def main():
 
     if os.path.isfile(path):
         hash = h.compute_file_hash(path)
-        # TODO maybe I should have only one dictionary owith file hashes as keys ...
+        # TODO maybe I should have only one dictionary with file hashes as keys ...
         # TODO ... so there is no way they become inconsistent
         if hash not in FIX_LIST and hash not in MISSING_CODE:
             h.error_and_exit(f"Input file is not one os the specific files expected: '{path}'.")
