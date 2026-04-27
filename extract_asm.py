@@ -9,7 +9,24 @@ import modal_constants as mc
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Extract assembler from specific HTML pages.")
+    parser = argparse.ArgumentParser(
+        description="Extract assembler from specific HTML pages.",
+        epilog="""
+The specific HTML pages are:
+
+https://www.trs-80.com/sub-disassem-rom-level-1.htm
+https://www.trs-80.com/sub-disassem-rom-m1-part-1.htm
+https://www.trs-80.com/sub-disassem-rom-m1-part-2.htm
+https://www.trs-80.com/sub-disassem-rom-m1-part-3.ht
+https://www.trs-80.com/sub-disassem-rom-m3-part-2.htm
+https://www.trs-80.com/sub-disassem-rom-m3-part-3.htm
+https://www.trs-80.com/sub-disassem-rom-m3-part-4.htm
+
+But those pages are not fetched from the Internet, but from the supplied locally saved file.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    
     parser.add_argument("path", nargs='?', default=".", help="Path of input file.")
     parser.add_argument("output_path", nargs='?', default="", help="Path of output file.")
 
@@ -17,7 +34,7 @@ def main():
     group0.add_argument("-d", "--disassembler", dest="disassembler_mode", action="store_true", help="Outputs a disassembler format.")
     group0.add_argument("-c", "--assembler", dest="disassembler_mode", action="store_false", help="Outputs a compilable assembler format.")
     parser.set_defaults(disassembler_mode=True)
-
+    
     group1 = parser.add_mutually_exclusive_group(required=False)
     group1.add_argument("--no-inline-org", action='store_true', default=False, dest="no_inline_org", help="Generate ORG directives in separated lines.")
     group1.add_argument("--no-org", action='store_true', default=False, dest="no_org", help="Do not generate ORG directives.")
