@@ -34,11 +34,11 @@ But those pages are not fetched from the Internet, but from the supplied locally
     group0.add_argument("-d", "--disassembler", dest="disassembler_mode", action="store_true", help="Outputs a disassembler format.")
     group0.add_argument("-c", "--assembler", dest="disassembler_mode", action="store_false", help="Outputs a compilable assembler format.")
     parser.set_defaults(disassembler_mode=True)
-    
+
     group1 = parser.add_mutually_exclusive_group(required=False)
     group1.add_argument("--no-inline-org", action='store_true', default=False, dest="no_inline_org", help="Generate ORG directives in separated lines.")
     group1.add_argument("--no-org", action='store_true', default=False, dest="no_org", help="Do not generate ORG directives.")
-    
+
     args = parser.parse_args()
 
     if args.no_inline_org and args.disassembler_mode :
@@ -48,12 +48,14 @@ But those pages are not fetched from the Internet, but from the supplied locally
         parser.error("--no-org requires the option -c or --assembler.")
 
     mc.set("DISASSEMBLER_MODE", args.disassembler_mode)
+    mc.set("NO_INLINE_MODE", args.no_inline_org)
+   
     if args.disassembler_mode:
         mc.set("WIDTH_ADDRESS", WIDTH_ADDRESS_DISASSEMBLY_MODE)
     else:
         mc.set("WIDTH_ADDRESS", WIDTH_ADDRESS_COMPILABLE_MODE)
 
-    # TODO make a mode foe z80asm
+    # TODO make a mode for z80asm
 
     # this import will access WIDTH_ADDRESS and it is here because it will crash if made before initializing it
     from process_classes import process

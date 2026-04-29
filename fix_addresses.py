@@ -9,16 +9,16 @@ def fix_address(address, hash, type="code"):
     fix_elements = FIX_LIST[hash]
 
     # initialize the attributes on the first time
-    if type not in fix_address.count_addresseses:
-        fix_address.count_addresseses[type] = {}
+    if type not in fix_address.count_addresses:
+        fix_address.count_addresses[type] = {}
 
     if type not in fix_address.address_stop_skipping:
         fix_address.address_stop_skipping[type] = {}
         
-    # even if it os not an address of interest the function can still be on SKIP state
+    # even if it is not an address of interest the function can still be on SKIP state
     if fix_address.address_stop_skipping[type] != {}:
         if fix_address.address_stop_skipping[type] == address:
-            # skiping part ended return to normal
+            # skipping part ended return to normal
             fix_address.address_stop_skipping[type] = {}
             return None, address
         else:
@@ -30,14 +30,14 @@ def fix_address(address, hash, type="code"):
 
     # can only reach this point if it is an address of interest
 
-    # count ocurrencies of the address
-    if address not in fix_address.count_addresseses[type]:
-        fix_address.count_addresseses[type][address] = 1
+    # count occurrences of the address
+    if address not in fix_address.count_addresses[type]:
+        fix_address.count_addresses[type][address] = 1
     else:
-        fix_address.count_addresseses[type][address] += 1
+        fix_address.count_addresses[type][address] += 1
 
     count, action, new_address = fix_elements[address]
-    if count == fix_address.count_addresseses[type][address]:
+    if count == fix_address.count_addresses[type][address]:
         # the address has the necessary count
         # TODO here we can use a switch
         if action == SKIP:
@@ -50,5 +50,5 @@ def fix_address(address, hash, type="code"):
     else:
         return None, address
 
-fix_address.count_addresseses = {}
+fix_address.count_addresses = {}
 fix_address.address_stop_skipping = {}

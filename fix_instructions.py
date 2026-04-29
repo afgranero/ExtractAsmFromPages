@@ -96,7 +96,7 @@ def fix_defw_to_defb(instruction):
     #
     # DEFW 874BH
     #
-    # DEFW generates little endian data, shouldbe be a DEFB 87H, 48H
+    # DEFW generates little endian data, should be be a DEFB 87H, 48H
     msb = fix_hexa_labels_ambiguity(instruction[5:7])
     lsb = fix_hexa_labels_ambiguity(instruction[7:-1])
     instruction = f"DEFB {msb}H, {lsb}H"
@@ -109,10 +109,10 @@ def normalize_hex(instruction):
 
     # I know full well that this could be done in an much easier way ...
     # ... with a regex but I find regex native lib in Python awful ...
-    # ... consider it a challenge: can you make a smaller one withou using a regex?
+    # ... consider it a challenge: can you make a smaller one without using a regex?
 
     # assembler do not accept hex values in IX and IY registers offsets ...
-    # ... and the offeset can be negative too
+    # ... and the offset can be negative too
     instruction = normalize_index_offsets(instruction, "IX")
     instruction = normalize_index_offsets(instruction, "IY")
 
@@ -145,7 +145,7 @@ def normalize_hex(instruction):
 
 def normalize_index_offsets(instruction, register):
     # transform index offsets to integer values ...
-    # ... and the offeset can be negative too
+    # ... and the offset can be negative too
     prefix = f"({register}+"
     suffix = ")"
 

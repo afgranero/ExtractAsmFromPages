@@ -28,10 +28,10 @@ def general_case1(cols):
 
     # this is an error on the page formatting: 
     # ... you can ignore the second DIV if it repeats the instruction ...
-    # ... the repeat was inadvertly put as comment garbling format ...
+    # ... the repeat was inertly put as comment garbling format ...
     # ... remove it
     if cols[1].get_text() != cols[2].get_text():
-        h.error_and_exit(f"Unexpected format: repeatded instruction does not match: '{cols[1].get_text()}', '{cols[2].get_text()}'.")
+        h.error_and_exit(f"Unexpected format: repeated instruction does not match: '{cols[1].get_text()}', '{cols[2].get_text()}'.")
 
     cols.pop(2)
 
@@ -254,7 +254,7 @@ def instruction_case0(col_address, col_instruction, col_comment, hash):
     #        </div>
     #    </div>
 
-    # this is the single special case of case 2 where inside the div all is emcompassed by a link
+    # this is the single special case of case 2 where inside the div all is encompassed by a link
     inner_col_instruction = col_instruction.contents[0]
     return instruction_case2(col_address, inner_col_instruction, col_comment, hash)
 
@@ -344,17 +344,17 @@ def instruction_case2(col_address, col_instruction, col_comment, hash):
     for index in range(0, col_instruction_count):
         instruction = col_instruction.contents[index].get_text(strip=True)
         if instruction == "":
-            # it is a </br> skipt it
+            # it is a </br> skip it
             continue
         if instruction[-1] != "H" and cs.is_hex(instruction):
-            # it is a hexadecimal byte without the H sufix
+            # it is a hexadecimal byte without the H suffix
             instruction = f"{instruction}H"
 
         if index_line == 0:
             # first line is a normal one: address already printed and, just the instruction ...
             lines.append(f"{fo.format_instruction(instruction)}{DELIMITER_LEFT}{comments[index_line]}")
         else:
-            # ... next lines need to print the adress and, are data so a DEFB is needed
+            # ... next lines need to print the address and, are data so a DEFB is needed
             lines.append(f"{fo.format_address(f'{address_dec:04X}H')}{fo.format_instruction(instruction)}{DELIMITER_LEFT}{comments[index_line]}")
 
         address_dec+=1
@@ -440,14 +440,14 @@ def instruction_case5(col_address, col_instruction, col_comment):
     for index in range(0, col_instruction_count):
         instruction = col_instruction.contents[index].get_text(strip=True)
         if instruction == "":
-            # it is a </br> skipt it
+            # it is a </br> skip it
             continue
 
         if index_line == 0:
             # first line is a normal one: address already printed and, just the instruction ...
             lines.append(f"{fo.format_instruction(instruction)}{DELIMITER_LEFT}{comments[index_line]}")
         else:
-            # ... next lines need to print the adress and, are data so a DEFB is needed
+            # ... next lines need to print the address and, are data so a DEFB is needed
             lines.append(f"{fo.format_address(f'{address_dec:04X}H')}{fo.format_instruction(instruction)}{DELIMITER_LEFT}{comments[index_line]}")
 
         address_dec+=1
@@ -462,7 +462,7 @@ def instruction_case5(col_address, col_instruction, col_comment):
 @call_count
 @with_condition(lambda col_comment_count: col_comment_count == 0)
 def comment_case1():
-    # exemplo:
+    # example:
     #
     #   <div class="assembly-row-combined">
     #       <div>01C0H</div>
@@ -544,9 +544,9 @@ def comment_case3(col_comment):
     # ...    first line after the instruction ...
     # ...    other lines continuing the comment without instruction before ...
     # ... other case ...
-    # ...    some foprmatting like kbd that spreads it in lines
+    # ...    some formatting like <kbd> that spreads it in lines
 
-    # add lines without spliting trivial tags just removing them
+    # add lines without splitting trivial tags just removing them
     temp_lines = []
     for content in col_comment.contents:
         if type(content) is element.NavigableString:
