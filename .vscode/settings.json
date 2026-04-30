@@ -3,6 +3,8 @@
         "DEFB",
         "DEFM",
         "defw",
-        "peciselly"
+        "GOSUB",
+        "peciselly",
+        "strerror"
     ]
 }

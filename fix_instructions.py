@@ -17,6 +17,8 @@ def fix_instruction(instruction):
         instruction = fix_defb_parameter_without_coma(instruction)
     elif fix_defw_to_defb.condition(instruction):
         instruction = fix_defw_to_defb(instruction)
+    elif fix_adc_immediate.condition(instruction):
+         instruction = fix_adc_immediate(instruction)
 
     return instruction
 
@@ -100,6 +102,20 @@ def fix_defw_to_defb(instruction):
     msb = fix_hexa_labels_ambiguity(instruction[5:7])
     lsb = fix_hexa_labels_ambiguity(instruction[7:-1])
     instruction = f"DEFB {msb}H, {lsb}H"
+    return instruction
+
+# TODO fix ADC nnnnH that is non standard mnemonic to ADC A,nnnnH that is standard so it can be compile in Savannah z80asm
+# TODO use it
+@call_count
+@with_condition(lambda instruction: instruction[:4] == "ADC " and cs.is_hex(instruction[5:-1]) and instruction[-1] == "H")
+def fix_adc_immediate(instruction):
+    # example:
+    #
+    # ADC 05H
+    #
+    # this is not an official mnemonic, should be be a ADC A,05H
+    # the other form is supported by sjasmplus but not by Savannah z80asm
+    instruction = instruction[:4] + "A," + instruction[4:]
     return instruction
 
 
